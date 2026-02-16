@@ -1,0 +1,688 @@
+
+
+.filtro-container {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid #000;
+  padding: 5px;
+  max-width: 100%;
+  gap: 5px;
+}
+
+.input-filtro {
+  border: none;
+  outline: none;
+  flex: 1;
+  min-width: 120px;
+}
+
+.chip {
+  background-color: #8f8;
+  border: 1px solid #000;
+  border-radius: 4px;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+}
+
+.chip .close-btn {
+  margin-left: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+
+#Cronograma-Check-list {
+  overflow-x: auto;
+}
+
+#Cronograma-Check-list thead th {
+    background-color: #007bff;
+    color: black;
+}
+
+#graficosPizzaSetores {
+  display: flex;
+  flex-wrap: wrap;  /* Permite que os gráficos que não cabem na linha atual, passem para a linha seguinte */
+  justify-content: space-evenly; /* Distribui os gráficos igualmente */
+}
+
+#graficosPizzaSetores canvas {
+  min-width: 250px;   /* Largura mínima do canvas */
+  min-height: 250px;
+  max-width: 400px;   /* Largura máxima do canvas */
+  max-height: 400px;  /* Altura máxima do canvas */
+}
+
+.mes-container {
+  border: 1px solid #000; /* Cor e espessura da borda */
+  border-radius: 10px; /* Bordas arredondadas */
+  margin: 10px; /* Adiciona espaçamento entre os canvases */
+}
+
+.mes-container h3 {
+  text-align: center; /* Centraliza verticalmente */
+}
+
+#containerGraficoCartoes {
+    /*width: 100%; */
+    overflow-x: auto; 
+    white-space: nowrap;
+    min-height: 400px;  /* Exemplo de altura mínima */
+}
+
+#containerGraficoCartoes canvas {
+    min-width: 1000px;   /* Largura mínima do canvas */
+    max-height: 500px;  /* Altura mínima do canvas */
+}
+
+#grafico-pizza-Cartoes {
+  display: flex;
+  flex-wrap: wrap;  /* Permite que os gráficos que não cabem na linha atual, passem para a linha seguinte */
+  justify-content: space-evenly; /* Distribui os gráficos igualmente */
+}
+
+#grafico-pizza-Cartoes canvas {
+  min-width: 150px;   /* Largura mínima do canvas */
+  min-height: 150px;
+  max-width: 250px;   /* Largura máxima do canvas */
+  max-height: 250px;  /* Altura máxima do canvas */
+}
+
+#containerGraficoInvestimento {
+    /*width: 100%; */
+    overflow-x: auto; 
+    white-space: nowrap;
+    min-height: 400px;  /* Exemplo de altura mínima */
+}
+
+#graficoPizzaInvestimentos {
+  min-width: 400px;
+  min-height: 400px;
+  max-width: 700px;   /* Largura máxima do canvas */
+  max-height: 700px;  /* Altura máxima do canvas */
+}
+
+#graficoBarrasInvestimentos, #graficoProventosAcoes{
+  min-height: 250px;
+  max-height: 500px;
+}
+
+.grafico-container, .grafico-container-barras {
+  border: 1px solid #000; /* Cor e espessura da borda */
+  border-radius: 10px; /* Bordas arredondadas */
+  margin: 10px; /* Adiciona espaçamento entre os canvases */
+}
+
+.grafico-container h3{
+  text-align: center; /* Centraliza verticalmente */
+}
+
+.divBoletimAltenativo {
+    border: 1px solid #000; /* Cor e espessura da borda */
+    border-radius: 10px; /* Bordas arredondadas */
+    padding: 7px; /* Espaçamento interno */
+    display: inline-block; /* Para ajustar ao conteúdo, se necessário */
+}
+.divBoletimAltenativoPesquisa {
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: center; /* Centraliza verticalmente */
+}
+
+.divBoletimAltenativoGeral {
+    border: 1px solid #000; /* Cor e espessura da borda */
+    border-radius: 10px; /* Bordas arredondadas */
+    padding: 7px; /* Espaçamento interno */
+}
+
+
+.toast {
+    position: fixed;
+    top: 40px;
+    right: 20px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 2px;
+    border-radius: 5px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.5s ease-in-out;
+    border-radius: 10px; /* Bordas arredondadas */
+    box-sizing: border-box; /* Inclui o padding na largura total */
+    width: fit-content;
+    height: fit-content;
+}
+
+.toast button {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+}
+
+
+.div-filtros-boletim-mensal {
+    display: flex;
+    flex-direction: row;
+}
+.div-filtros-boletim-mensal-p {
+  text-align: center;
+  border-radius: 8px; /* Bordas arredondadas */
+  box-sizing: border-box; /* Inclui o padding na largura total */
+  border: 2px solid #000;
+  margin: 5px;
+  padding: 2px;
+  width: fit-content;
+  height: fit-content;
+}
+
+.Icone6 h3 {
+  display: none;
+}
+
+.Icone6 h3.filtro-Check-List {
+  display: block; /* ou inline-block, flex, conforme necessário */
+}
+
+.boletim h3{
+  margin: 0px;
+  padding: 0px;
+}
+
+.caixa-item h3{
+  margin: 0px;
+  padding: 0px;
+}
+
+input, button, select{
+  border-radius: 8px; /* Bordas arredondadas */
+  box-sizing: border-box; /* Inclui o padding na largura total */
+}
+
+#tabelaCheckList td:nth-child(3), #tabelaCheckList td:nth-child(4) {
+  text-align: center;
+}
+
+#tabelaCheckList td:nth-child(2) {
+  text-align: right;
+}
+
+#tabelaCheckList2 td:nth-child(3), #tabelaCheckList2 td:nth-child(4) {
+  text-align: center;
+}
+
+#tabelaCheckList2 td:nth-child(2) {
+  text-align: right;
+}
+
+.boletim td:nth-child(3){
+  text-align: center;
+}
+
+.boletim td:nth-child(2), .boletim td:nth-child(4) {
+  text-align: right;
+}
+
+#cofrinho-tabela-corpo-redimento td {
+  text-align: right;  
+}
+
+#cofrinho-tabela-corpo-redimento td:nth-child(1) {
+  text-align: center;  
+}
+
+#cofrinho-tabela-corpo-redimento td:nth-child(7) {
+  text-align: left;  
+}
+
+/* Para navegadores baseados em WebKit (Chrome, Safari, Edge) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Para Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+    position: relative;
+  
+}
+
+.left-panel {
+    width: 0%; /* Inicialmente oculto */
+    /* min-width: 500px; */
+    background-color: white;
+    padding: 10px;
+    transition: width 0.3s;
+    position: relative;
+    overflow: auto; /* Garante que nada ultrapasse os limites */
+    display: none 
+}
+
+.right-panel {
+    background-color: white;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: width 0.3s;
+    /* overflow: hidden;  Remover esta linha */
+}
+
+.top-panel {
+    background-color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    transition: height 0.3s;
+}
+
+.paginaCalculadora {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 0; /* Remove margin default */
+}
+
+textarea {
+    width: 100%;
+    height: 100%; /* Ajuste conforme o tamanho do botão */
+    box-sizing: border-box;
+    resize: none; /* Impede o redimensionamento do textarea */
+    margin: 0; /* Remove a margem do textarea */
+}
+
+.paginaPrincipal {
+    background-color: white;
+    padding: 10px;
+    box-sizing: border-box;
+    transition: height 0.3s;
+    height: 100%;
+    overflow-y: auto; /* Permitir rolagem vertical */
+}
+
+.resizer {
+    position: absolute;
+    background: #000;
+    z-index: 1;
+}
+
+.left-resizer {
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: ew-resize;
+}
+
+.top-resizer {
+    left: 0;
+    right: 0;
+    height: 5px;
+    bottom: 0;
+    cursor: ns-resize;
+}
+
+.hidden {
+    display: none;
+}
+
+#toggleButton  {
+    font-size: 16px;
+    padding: 10px;
+    border: none;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+.containerIcones {
+    background-color: white;
+    display: flex;
+    flex-direction: column; /* Alinha os itens em coluna */
+    gap: 10px; /* Espaçamento entre os botões */
+    border: 2px solid #000;
+    overflow-y: auto;
+}
+
+.icon, .icone {
+    padding: 10px;
+    border: none;
+    background-color: white;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.icon:hover {
+    background-color: #0056b3;
+}
+
+.icone_{
+    display: none;
+}
+
+.cartaoadd, .acao, .cambio, .grupoInvestimento {
+    border: 2px solid #000;
+    padding: 20px;
+    margin: 20px auto;
+    max-height: 400px; /* Defina uma altura máxima */
+    overflow-y: auto; /* Permitir rolagem vertical */
+}
+
+.caixa-item {
+    border: 2px solid #000;
+    padding: 20px;
+    margin: 20px auto;
+    /*max-height: 800px; /* Defina uma altura máxima */
+    overflow-y: auto; /* Permitir rolagem vertical */
+}
+
+#proventos-investimentos, #grupos-investimentos, #historia-investimentos, #distribuicao-ponderada-investimentos {
+  border: 2px solid #000;
+  border-top: none; /* Remove a borda superior */
+  padding: 5px;
+  margin: 5px auto; /* Remove o espaço externo superior */
+  max-height: 800px; /* Defina uma altura máxima */
+  overflow-y: auto; /* Permitir rolagem vertical */
+}
+
+#div-Proventos-Investimento, #div-Grupos-Investimento, #div-historico-Investimento, #div-distribuicao-ponderada-Investimento {
+  border: 2px solid #000;
+  border-bottom: none; /* Remove a borda inferior */
+  text-align: center;
+  margin: 5px auto;
+  margin-bottom: 0; /* Remove o espaço externo inferior */
+  cursor: pointer; /* Indica que é clicável */
+}
+
+#cofrinho-rendimento {
+  overflow-y: auto;
+}
+
+
+#div-Proventos-Investimento, #div-Grupos-Investimento, #div-distribuicao-ponderada-Investimento {
+  border: 2px solid #000;
+  text-align: center;
+}
+
+.table-container {
+    margin-top: 20px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+table, th, td {
+    border: 1px solid #000;
+}
+th {
+    padding: 8px;
+    text-align: center;
+}
+td {
+    padding: 8px;
+    text-align: left;
+}
+button {
+    margin-top: 10px;
+}
+
+.tabelaBoletim, .graficosGrid, .boletimgraficoContainer {
+    display: grid;
+    gap: 10px; /* Espaço entre os itens */
+}
+
+@media (min-width: 2801px) {
+    .tabelaBoletim {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    #CheckListDiv, #CheckListDiv2, .graficosGrid, .boletimgraficoContainer {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 2101px) and (max-width: 2800px) {
+    .tabelaBoletim {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    #CheckListDiv, #CheckListDiv2, .graficosGrid, .boletimgraficoContainer {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1400px) and (max-width: 2100px) {
+    .tabelaBoletim {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #CheckListDiv, #CheckListDiv2, .graficosGrid, .boletimgraficoContainer {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 750px) {
+    .tabelaBoletim {
+        grid-template-columns: 1fr;
+    }
+    #CheckListDiv, #CheckListDiv2, .graficosGrid, .boletimgraficoContainer {
+        grid-template-columns: repeat(1, 1fr);
+    }
+}
+
+@media (min-width: 1700px) {
+    body, #expressao {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        font-size: 20px;
+    }
+    .descricao {
+        font-size: 35px;
+    }
+    .valor-input, .valor-total {
+        width: 150px; 
+        font-size: 20px;
+    }
+    .data-input {
+        width: 150px; 
+        font-size: 20px;
+    }
+    .descricao-input {
+      min-width: 400px; /* não pode ser menor que isso */
+      max-width: 1000px;
+      width: 100%;       /* tenta ocupar o máximo possível */
+      font-size: 20px;
+    }
+    .dia-input {
+        width: 50px; 
+        font-size: 20px;
+    }
+    .parcela-input {
+        width: 60px; 
+        font-size: 20px
+    }
+    .remover-linha {
+        font-size: 20px;
+    }
+    .icon svg, .icone svg, .icone img, .icon img {
+        max-width: 35px; /* Limita o tamanho máximo do ícone */
+  }
+    .checkbox {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media (max-width: 1699px) {
+    body, #expressao {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        font-size: 15px;
+    }
+    .descricao {
+        font-size: 25px;
+    }
+    #expressao, .top-panel {max-height: 125px}
+    .valor-input, .valor-total {
+        width: 105px; 
+        font-size: 15px;
+    }
+    .data-input {
+        width: 110px; 
+        font-size: 15px;
+    }
+    .descricao-input {
+        width: 270px; 
+        font-size: 15px;
+    }
+    .dia-input {
+        width: 30px; 
+        font-size: 15px;
+    }
+    .parcela-input {
+        width: 45px; 
+        font-size: 15px;
+    }
+    .remover-linha {
+        font-size: 15px;
+    }
+    .icon svg, .icone svg, .icone img, .icon img {
+        max-width: 25px; /* Limita o tamanho máximo do ícone */
+    }
+    .tabelaBoletim {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    #CheckListDiv, #CheckListDiv2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .checkbox {
+        width: 15px;
+        height: 15px;
+    }
+}
+
+@media (max-width: 999px) {
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        font-size: 15px;
+    }
+    body,  .valor-input, .valor-total, .data-input, .descricao-input, .dia-input, .parcela-input, .remover-linha, #expressao{
+        font-size: 13px;
+    }
+  
+    .icon svg, .icone svg, .icone img, .icon img {
+        width: 22px; /* Limita o tamanho máximo do ícone */
+    }
+    .container {
+      flex-direction: column; /* Permite que os itens dentro da .container fiquem empilhados verticalmente */
+    }
+    .div-filtros-boletim-mensal {
+      flex-direction: column;
+    }
+    .containerIcones {
+          display: flex;
+          flex-direction: row; /* Coloca os itens lado a lado */
+          gap: 10px; /* Espaço entre os ícones */
+          background-color: white;
+          padding: 10px;
+          box-sizing: border-box;
+          align-items: center; /* Alinha os ícones no centro */
+          height: 100%; /* Faz com que o contêiner ocupe todo o espaço disponível */
+          overflow-y: hidden; /* Remove a rolagem */
+          overflow-x: auto;
+          flex-grow: 1; /* Faz o contêiner ocupar o máximo de espaço possível */
+          max-height: 35px;
+      }
+    .right-panel {
+        height: calc(100% - 34px);
+    }
+    .tabelaBoletim, #CheckListDiv, #CheckListDiv2 {
+          grid-template-columns: repeat(1, 1fr);
+      }
+      ._PC {
+        display: none;
+      }
+    .checkbox {
+        width: 15px;
+        height: 15px;
+    }
+}
+
+@media (min-width: 1001px) {
+  .icon svg, .icone svg, .icone img, .icon img {
+    width: 100%;
+    height: auto;
+  }
+}
+
+.checkbox {
+    transform: scale(1.5);
+}
+
+#CheckListDiv, #CheckListDiv2 {
+    display: grid;
+    gap: 10px; /* Espaço entre os itens */
+}
+
+.tabela-calendario {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabela-calendario th, .tabela-calendario td {
+    border: 1px solid #000;
+    padding: 10px;
+    text-align: center;
+}
+
+.remover-linha {
+    color: #000;
+    border: 1px solid black;
+    background-color: white;
+}
+.remover-linha:hover {
+    background-color: #f2f2f2;
+    cursor: pointer;
+}
+
+.cofrinho, .cofrinho-metas {
+    border: 1px solid #000;
+    margin: 0;
+    padding: 0;
+    overflow-x: auto;
+}
