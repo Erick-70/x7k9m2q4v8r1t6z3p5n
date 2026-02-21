@@ -1,7 +1,340 @@
+function obterValorCelulaPlanilha(celula){
+
+    if (celula === undefined) return '';
+
+    var elemento = celula.querySelector('[data-valor]');
+
+    if (elemento) {
+        var valor = elemento.dataset.valor;
+
+        // se for número → retorna número
+        if (!isNaN(valor)) return parseFloat(valor);
+
+        return valor.toString().toLowerCase();
+    }
+
+    var texto = celula.textContent.trim();
+
+    if (!isNaN(texto)) return parseFloat(texto);
+
+    return texto.toLowerCase();
+}
+
+function ordenarTabelaPlanilha(tabela, indiceColuna, ordem) {
+
+    var tbody = tabela.querySelector('tbody');
+    var todasLinhas = Array.from(tbody.querySelectorAll('tr'));
+
+    // linhas que não devem se mover
+    var linhasFixas = todasLinhas.filter(linha =>
+        linha.classList.contains('boletim-mensal-total-filtro') ||
+        linha.classList.contains('boletim-mensal-saldoMesPassado') ||
+        linha.offsetParent === null
+    );
+
+    // linhas que serão ordenadas
+    var linhasOrdenar = todasLinhas.filter(linha =>
+        !linhasFixas.includes(linha)
+    );
+
+    linhasOrdenar.sort((a, b) => {
+        var valorA = obterValorCelulaPlanilha(a.children[indiceColuna]);
+        var valorB = obterValorCelulaPlanilha(b.children[indiceColuna]);
+
+        if (valorA === '' || valorB === '') return 0;
+
+        if (typeof valorA === 'number' && typeof valorB === 'number') {
+            return ordem === 'asc'
+                ? valorA - valorB
+                : valorB - valorA;
+        }
+
+        return ordem === 'asc'
+            ? valorA.localeCompare(valorB)
+            : valorB.localeCompare(valorA);
+    });
+
+    // limpa tbody
+    tbody.innerHTML = '';
+
+    // adiciona ordenadas primeiro
+    linhasOrdenar.forEach(l => tbody.appendChild(l));
+
+    // adiciona fixas no final (sempre última)
+    linhasFixas.forEach(l => tbody.appendChild(l));
+}
+
+function ativarOrdenacaoPlanilha(tabela){
+
+    var cabecalhos = tabela.querySelectorAll('thead th');
+
+    cabecalhos.forEach((th, index) => {
+        // evita registrar evento 2x
+        if (th.dataset.ordenacaoAtiva) return;
+        th.dataset.ordenacaoAtiva = true;
+
+        // ordem inicial
+        th.dataset.ordem = 'desc';
+
+        th.style.cursor = 'pointer';
+
+        th.addEventListener('click', () => {
+
+            // alterna ordem
+            var novaOrdem = th.dataset.ordem === 'asc' ? 'desc' : 'asc';
+            th.dataset.ordem = novaOrdem;
+
+            ordenarTabelaPlanilha(tabela, index, novaOrdem);
+        });
+    });
+}
+
+function iniciarOrdenacaoPlanilhas(ehChackList = false) {
+    if (ehChackList) {
+
+        document.querySelectorAll('.classCheckList table').forEach(tabela => {
+            ativarOrdenacaoPlanilha(tabela);
+        });
+        return;
+    }
+
+    document.querySelectorAll('.boletim table').forEach(tabela => {
+        ativarOrdenacaoPlanilha(tabela);
+    });
+}
+
+function obterValorCelula(celula){
+    var elemento = celula.querySelector('[data-valor]');
+
+    if (elemento) { return parseFloat(elemento.dataset.valor) || 0;}
+
+    return celula.textContent.trim().toLowerCase();
+}
+
+function ordenarTabelaPorColuna(tabela, indiceColuna, ordem){
+
+    var tbody = tabela.querySelector('tbody');
+    var linhas = Array.from(tbody.querySelectorAll('tr'));
+
+    linhas.sort((a, b) => {
+
+        var valorA = obterValorCelula(a.children[indiceColuna]);
+        var valorB = obterValorCelula(b.children[indiceColuna]);
+
+        if (typeof valorA === 'number' && typeof valorB === 'number') {
+            return ordem === 'asc' ? valorA - valorB : valorB - valorA;
+        }
+
+        // ordenação texto
+        if (valorA < valorB) return ordem === 'asc' ? -1 : 1;
+        if (valorA > valorB) return ordem === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    // reordena DOM
+    linhas.forEach(linha => tbody.appendChild(linha));
+}
+
+function ativarOrdenacaoTabela(tabela){
+
+    var cabecalhos = tabela.querySelectorAll('thead th');
+
+    cabecalhos.forEach((th, index) => {
+
+        // ignora colunas 0 e 1
+        if (index <= 1) return;
+
+        var ordemAtual = 'desc';
+
+        th.style.cursor = 'pointer';
+
+        th.addEventListener('click', () => {
+
+            ordemAtual = ordemAtual === 'asc' ? 'desc' : 'asc';
+
+            ordenarTabelaPorColuna(tabela, index, ordemAtual);
+        });
+    });
+}
+
+function atualizarDadosGrupos (){
+    var linhas = document.getElementsByClassName('linha-grupo-investimento');
+    listaCodAcoes();
+
+    for (let i = 0; i < linhas.length; i++) {
+        let novaLinha = linhas[i];
+
+        var codAcao = novaLinha.querySelector('.cod-acoes-escolha');
+        var empresaInput = novaLinha.querySelector('.descricao-input');
+        var valorAplicadoInput = novaLinha.querySelector('.valor-aplicado-parte-grupo');
+        var valorizacaoLabel = novaLinha.querySelector('.valorizacao');
+        var qtdeCotas = novaLinha.querySelector('.qtde-cota');
+        var valorMediaAcao = novaLinha.querySelector('.valor-media-acao');
+
+        var id = novaLinha.classList[1].replace('id-', '');
+
+        prenecherDadosGrupos(codAcao, empresaInput, valorAplicadoInput, valorizacaoLabel, qtdeCotas, valorMediaAcao);
+        atualizaTotaisGrupo(id);
+    }
+}
+
+var obcoesColunasGrupos = {
+    empresa: { index: 1, nome: 'Empresa' },
+    valorTotal: { index: 2, nome: 'Valor Total' },
+    valorizacao: { index: 3, nome: 'Valorização' },
+    taxaRetorno: { index: 4, nome: 'Taxa Retorno' },
+    qtdeCotas: { index: 5, nome: 'Qtd. Ações' },
+    valorMediaAcao: { index: 6, nome: 'Valor Média' },
+    taxaRetornoReal: { index: 7, nome: 'Taxa Retorno Aplicado' },
+    Provento: { index: 8, nome: 'Provento' },
+};
+
+function exibirOuOcultarColunaGrupos(chave, mostrar){
+
+    var indiceColuna = obcoesColunasGrupos[chave].index; // tabela começa em 0
+
+    document.querySelectorAll('.grupoInvestimento table').forEach(tabela => {
+
+        tabela.querySelectorAll('tr').forEach(linha => {
+
+            var celula = linha.children[indiceColuna];
+            if (!celula) return;
+
+            celula.style.display = mostrar ? 'table-cell' : 'none';
+        });
+
+    });
+}
+
+function criarCaixasSelecaoColunasGrupos(){
+
+    var div = document.getElementById('grupos-investimentos-colunas-selecao');
+    div.innerHTML = '';
+
+    Object.entries(obcoesColunasGrupos).forEach(([chave, config]) => {
+
+        // container opcional (organização visual)
+        var container = document.createElement('div');
+
+        // checkbox
+        var caixa = document.createElement('input');
+        caixa.type = 'checkbox';
+        caixa.id = `coluna-grupo-${chave}`;
+        caixa.name = 'coluna-grupo';
+        caixa.value = chave;
+        caixa.checked = true; // começa visível
+
+        // quando mudar → oculta/exibe
+        caixa.addEventListener('change', function(){
+            exibirOuOcultarColunaGrupos(chave, this.checked);
+        });
+
+        // label
+        var label = document.createElement('label');
+        label.setAttribute('for', caixa.id);
+        label.textContent = config.nome;
+
+        container.appendChild(caixa);
+        container.appendChild(label);
+        div.appendChild(container);
+
+        // garante estado inicial
+        exibirOuOcultarColunaGrupos(chave, true);
+    });
+}
+
+criarCaixasSelecaoColunasGrupos();
+
+function atualizarVisibilidadeColunasGrupos(){
+
+    Object.keys(obcoesColunasGrupos).forEach(chave => {
+
+        var checkbox = document.getElementById(`coluna-grupo-${chave}`);
+        if (!checkbox) return;
+
+        exibirOuOcultarColunaGrupos(chave, checkbox.checked);
+    });
+}
+
+function addLinhasAcoesDistribuicaoPonderada() {
+    var movimentacoes = criarDicionarioDistribuicaoPonderada();
+    var acoes = document.getElementsByClassName('acao');
+
+    for (let i = 0; i < acoes.length; i++) {
+        let acao = acoes[i];
+        let codigo = acao.querySelector('.codigos-acoes').value;
+
+        for (const chave in movimentacoes) {
+            if (movimentacoes[chave].codigo === codigo) {
+
+                acao.querySelector('.adicionar-linha-acao').click();
+
+                var tabela = acao.querySelector('.tabela-corpo-acao');
+                var linhas = tabela.getElementsByTagName('tr');
+
+                // pega a linha criada (última ou primeira dependendo do seu carregou)
+                var linha = linhas[0]; 
+                var celulas = linha.getElementsByTagName('td');
+
+                const valorInput = celulas[1].querySelector('.valor-input');
+                const QtdeInput = celulas[3].querySelector('.qtde-cota');
+                const valorTotalInput = celulas[4].querySelector('.valor-total');
+
+                QtdeInput.value = movimentacoes[chave].qtdeCota;
+                valorInput.value = movimentacoes[chave].valorCota;
+                formatarMoeda(valorInput, '0')
+
+                // ✅ executa as 3 funções na ordem
+                var id = acao.id; // ou como você obtém o id
+                id = id.split('-')[1];
+
+                atualizarValorTotalAcao(valorInput, QtdeInput, valorTotalInput, id);
+                atualizarQtdeCotas(id);
+                atualizarTodosProventos();
+
+                delete movimentacoes[chave];
+                linha.classList.add('acao-adicionada-distribuicao-ponderada');
+            }
+        }
+    }
+}
+
+function removerLinhasAcoesDistribuicaoPonderada() {
+    var linhas = document.getElementsByClassName('acao-adicionada-distribuicao-ponderada');
+
+    while (linhas.length > 0) {
+        var celulas = linhas[0].getElementsByTagName('td');
+        celulas[5].querySelector('.remover-linha').click();
+    }
+}
+
+function criarDicionarioDistribuicaoPonderada() {
+    const tabela = document.getElementById('distribuicao-ponderada-tabela-corpo');
+    const linhas = tabela.getElementsByTagName('tr');
+    var dicionario = {};
+
+    for (let i = 0; i < linhas.length; i++) {
+        const celulas = linhas[i].getElementsByTagName('td');
+        var codigo = celulas[0].querySelector('.cod-acoes-escolha').value;
+        var valorCota = celulas[2].querySelector('.valor-cota-acao').value;
+        var qtdeCota = celulas[5].querySelector('.qtde-cota').value;
+
+        if (qtdeCota === '' || qtdeCota === '0') continue;
+
+        dicionario[i] = {
+            codigo: codigo,
+            valorCota: valorCota,
+            qtdeCota: qtdeCota
+        }
+    }
+
+    return dicionario;
+}
+
 function criarCronogramaCaixas (){
     let saldoStatus = true;
     let dicionarioValoresMensaisCartoes = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, hoje, 12);
-    criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes["1"]);
+    criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes["1"], true);
     const divsCronogramasCaixas = document.querySelectorAll('.cronograma-caixas');
     const saldosCaixasIniciais = document.querySelectorAll('.caixa-saldo-input');
     const saldoAtuais = document.querySelectorAll('.caixa-saldo-atual-input'); 
@@ -25,10 +358,10 @@ function criarCronogramaCaixas (){
         var novaLinha = document.createElement('tr');
         
         novaLinha.innerHTML = `
-            <td><label style="width: 200px;">Saldo Passado</label></td>
+            <td><label style="width: 200px;" data-valor="saldo Passado">Saldo Passado</label></td>
             <td><label data-valor="${saldo}" style="width: 85px;">R$ ${_valor}</label></td>
-            <td><label style="width: 200px;">1</label></td>
-            <td class='boletim-mensal-saldo'><label>R$ ${_valor}</label></td>
+            <td><label style="width: 200px;" data-valor="1">1</label></td>
+            <td class='boletim-mensal-saldo'><label data-valor="${saldo}">R$ ${_valor}</label></td>
         `;
 
         novaLinha.style.backgroundColor = 'rgba(211, 249, 216, 0.5)' // verde claro, 50% transparente
@@ -80,10 +413,10 @@ function criarCronogramaCaixas (){
 
                     novaLinha.setAttribute('valorLinha', valor);
                     novaLinha.innerHTML = `
-                        <td><label style="width: 200px;">${descricao}</label></td>
+                        <td><label style="width: 200px;" data-valor="${descricao}">${descricao}</label></td>
                         <td><label data-valor="${valor}" style="width: 85px;">R$ ${_valor}</label></td>
-                        <td><label style="width: 200px;">${dia}</label></td>
-                        <td class='boletim-mensal-saldo'><label>R$ ${saldoFormatado}</label></td>
+                        <td><label style="width: 200px;" data-valor="${dia}">${dia}</label></td>
+                        <td class='boletim-mensal-saldo'data-valor="${saldo}"><label>R$ ${saldoFormatado}</label></td>
                     `;
 
                     novaLinha.addEventListener('click', () => {
@@ -562,9 +895,23 @@ function CriarDicionarioCaixas (){
     return dicionarioCaixas;
 }
 
+
+function atualizarDicionarioBoletimCaixa(dicionarios){
+    let contador = 0;
+    Object.values(dicionarios).forEach((dado) => {
+        if (contador === 0) {
+            dado = criarBaseBoletimCaixa(dado, true);
+        }
+        dado = criarBaseBoletimCaixa(dado);
+        contador++;
+    })
+    return dicionarios;
+}
+
+
 var dicionarioCronogramaCaixas = {};
 
-function criarBaseBoletimCaixa(dicionario = {}) {
+function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
     var baseDescricao = {
         'Total provento': 'provento',
         'Total venda':'entrada',
@@ -647,6 +994,8 @@ function criarBaseBoletimCaixa(dicionario = {}) {
                 }
             });
         });
+
+        if (!ehPrimeiro) return;
 
         Object.values(movimentacoesLivres).forEach((movimentacaoLivre) => {
 
@@ -1062,9 +1411,7 @@ function criarCronogramaBoletimMensal(numeroBoletim, container, data, primeiro =
         data
     );
 
-    if (primeiro) {
-        dicionarios["1"] = criarBaseBoletimCaixa(dicionarios["1"]);
-    }
+    dicionarioValoresMensaisCartoes = atualizarDicionarioBoletimCaixa(dicionarios);
 
     calcularSemanasCronograma(
         dicionarios,
@@ -1524,7 +1871,9 @@ function cronogramaCheckListFuncao(filtro=[], conjunto=false){
     let dataHoje = new Date();
 
     dicionarioValoresMensaisCartoes = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, dataHoje);
-    dicionarioValoresMensaisCartoes["1"] = criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes["1"]);
+
+    dicionarioValoresMensaisCartoes = atualizarDicionarioBoletimCaixa(dicionarioValoresMensaisCartoes);
+
     calcularSemanasCronograma(dicionarioValoresMensaisCartoes, dataAtual, filtro, conjunto, identificador = 'Cronograma-tabela-corpo-1');
 }
 
@@ -1874,7 +2223,10 @@ function calcularTaxaRetornoDistribuicaoPonderada(codigoAcao){
     }
 
     let taxa = valorCota === 0 ? 0 : media / valorCota * 100;
-    return parseFloat(taxa.toFixed(3));
+    taxa = parseFloat(taxa.toFixed(3));
+
+
+    return [taxa, parseFloat(media.toFixed(5))];
 }
 
 function calcularDistribuicaoPonderadaInvestimento(){
@@ -3576,20 +3928,29 @@ function dadosCompletosAcoes() {
   let empresas = document.querySelectorAll('.nome-empresa-investimento');
   let valoresAplicados = document.querySelectorAll('.valor-aplicado');
   let valoresValorizacoes = document.querySelectorAll('.valor-valorizacao'); // label
+  let QtdeCotas = document.querySelectorAll('.qtde-cotas-acoes');
 
   for (let i = 0; i < codigos.length; i++) {
+    let qtdeCota = QtdeCotas[i].value || 0;
+    let valorGasto = valoresAplicados[i].getAttribute('data-valor') - valoresValorizacoes[i].getAttribute('data-valor');
+    let valorMedioCota = valorGasto / qtdeCota;
+    let valorMedioCota_ = valorMedioCota.toFixed(2).replace('.', ',');
+
     dicionario[codigos[i].value] = {
       empresa: empresas[i].value,
       valorAplicadoTexto: valoresAplicados[i].value,
       valorAplicadoNumero: valoresAplicados[i].getAttribute('data-valor'),
       valorValorizacaoTexto: valoresValorizacoes[i].textContent, // Pega o texto do label e remove espaços extras
       valorValorizacaoNumero: valoresValorizacoes[i].getAttribute('data-valor'),
+      qtdeCotas: qtdeCota,
+      valorMedioCota: valorMedioCota.toFixed(2).replace('.', ','),
+      valorMedioCota_: valorMedioCota_,
     };
   }
   return dicionario;
 }
 
-function prenecherDadosGrupos(cod, empresaInput, valorAplicadoInput, valorizacaoLabel){
+function prenecherDadosGrupos(cod, empresaInput, valorAplicadoInput, valorizacaoLabel, qtdeCotas, valorMedioCota) {
   var dicionario = dadosCompletosAcoes();
   let codigo = cod.value;
   if (dicionario[codigo]){
@@ -3598,6 +3959,10 @@ function prenecherDadosGrupos(cod, empresaInput, valorAplicadoInput, valorizacao
     valorAplicadoInput.setAttribute('data-valor', parseFloat(dicionario[codigo].valorAplicadoNumero));
     valorizacaoLabel.textContent = dicionario[codigo].valorValorizacaoTexto;
     valorizacaoLabel.setAttribute('data-valor', parseFloat(dicionario[codigo].valorValorizacaoNumero));
+    qtdeCotas.textContent = dicionario[codigo].qtdeCotas;
+    qtdeCotas.setAttribute('data-valor', parseFloat(dicionario[codigo].qtdeCotas));
+    valorMedioCota.textContent = `R$ ${dicionario[codigo].valorMedioCota}`;
+    valorMedioCota.setAttribute('data-valor', dicionario[codigo].valorMedioCota_);
   } else{
     cod.value = '';
     empresaInput.value = '';
@@ -3605,6 +3970,10 @@ function prenecherDadosGrupos(cod, empresaInput, valorAplicadoInput, valorizacao
     valorAplicadoInput.setAttribute('data-valor', 0);
     valorizacaoLabel.textContent = '';
     valorizacaoLabel.setAttribute('data-valor', 0);
+    qtdeCotas.textContent = '';
+    valorMedioCota.textContent = '';
+    qtdeCotas.setAttribute('data-valor', 0);
+    valorMedioCota.setAttribute('data-valor', 0);
   }
 }
 
@@ -3631,14 +4000,18 @@ function addGrupoinvestimento(){
 
             <div class="table-container-grupo">
               <button onclick="adicionarLinhaGrupoInvestimento(${grupoInvestimentoIdCounter})" class="remover-linha">Adicionar Linha</button>
-                <table>
+                <table id="grupo-investimento-${grupoInvestimentoIdCounter}-tabela-toda">
                     <thead>
                         <tr>
                             <th>Cod. Ação</th>
                             <th>Empresa</th>
-                            <th>Valor Aplicado</th>
+                            <th>Valor Total</th>
                             <th>Valorização</th>
                             <th>Taxa Retorno</th>
+                            <th>Qtd. Ações</th>
+                            <th>Valor Média</th>
+                            <th>Taxa Retorno Aplicado</th>
+                            <th> Provento Médio</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -3649,7 +4022,13 @@ function addGrupoinvestimento(){
             </div>
         </div>`
     container.appendChild(novaAcao);
+
+    // ativa ordenação da tabela criada
+    var tabela = novaAcao.querySelector('table');
+    ativarOrdenacaoTabela(tabela);
+
     gruposInvestimentosDados();
+    atualizarVisibilidadeColunasGrupos();
 }
 
 function apagarGrupoInvestimento(id){
@@ -3661,12 +4040,17 @@ function apagarGrupoInvestimento(id){
 function adicionarLinhaGrupoInvestimento(id){
     var tabelaCorpo = document.getElementById(`grupo-investimento-${id}-tabela`);
     var novaLinha = document.createElement('tr');
+    novaLinha.classList.add(`linha-grupo-investimento`, `id-${id}`);
     novaLinha.innerHTML = `
         <td><select class="valor-input cod-acoes-escolha"></select></td>
         <td><input class="descricao-input" disabled></td>
         <td><input type="text" class="valor-input valor-aplicado-parte-grupo" data-valor="0" disabled></td>
         <td><label class="valorizacao" data-valor="0">R$ 0,00 (0,000)</label></td>
-        <td><label class="taxa-retorno"></label></td>
+        <td><label class="taxa-retorno" data-valor="0"></label></td>
+        <td><label type="number" class="valor-input qtde-cota" data-valor="0"></label></td>
+        <td><label type="text" class="valor-input valor-media-acao" data-valor="0"></label></td>
+        <td><label type="text" class="valor-input taxa-retorno-real" data-valor="0"></label></td>
+        <td><label type="text" class="valor-input provento" data-valor="0"></label></td>
         <td><button class="remover-linha">Remover</button></td>
     `;
     if (!carregou) {tabelaCorpo.appendChild(novaLinha);}
@@ -3681,9 +4065,11 @@ function adicionarLinhaGrupoInvestimento(id){
     var empresaInput = novaLinha.querySelector('.descricao-input');
     var valorAplicadoInput = novaLinha.querySelector('.valor-aplicado-parte-grupo');
     var valorizacaoLabel = novaLinha.querySelector('.valorizacao');
+    var qtdeCotas = novaLinha.querySelector('.qtde-cota');
+    var valorMediaAcao = novaLinha.querySelector('.valor-media-acao');
   
     codAcao.addEventListener('change', () => {
-      prenecherDadosGrupos(codAcao, empresaInput, valorAplicadoInput, valorizacaoLabel);
+      prenecherDadosGrupos(codAcao, empresaInput, valorAplicadoInput, valorizacaoLabel, qtdeCotas, valorMediaAcao);
       atualizaTotaisGrupo(id);
     });
   listaCodAcoes();
@@ -3695,13 +4081,32 @@ function atualizaTotaisGrupo(id){
   let valorAplicadoTotal = 0;
   let valorizacaoTotal = 0;
   let taxaRetorno = 0;
+  let retornoReal = 0;
+  let qtdeCotas = 0;
   
   for (let i = 0; i < linhas.length; i++) {
     var colunas = linhas[i].getElementsByTagName('td');
+    let retornos = calcularTaxaRetornoDistribuicaoPonderada(colunas[0].querySelector('.cod-acoes-escolha').value);
+
     valorAplicadoTotal += parseFloat(colunas[2].querySelector('.valor-aplicado-parte-grupo').getAttribute('data-valor'));
     valorizacaoTotal += parseFloat(colunas[3].querySelector('.valorizacao').getAttribute('data-valor'));
-    taxaRetorno = calcularTaxaRetornoDistribuicaoPonderada(colunas[0].querySelector('.cod-acoes-escolha').value);
+
+    taxaRetorno = retornos[0];
     colunas[4].querySelector('.taxa-retorno').textContent = `${(taxaRetorno).toFixed(3).replace('.', ',')}%`;
+    colunas[4].querySelector('.taxa-retorno').setAttribute('data-valor', taxaRetorno);
+
+    qtdeCotas = parseFloat(colunas[5].querySelector('.qtde-cota').textContent);
+    let labelValorMedio = colunas[6].querySelector('.valor-media-acao').textContent;
+    let valorMediaAcao = parseFloat(labelValorMedio.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    retornoReal = retornos[1] * 100 / valorMediaAcao;
+
+    let textoVariacaoRetorno = (retornoReal > taxaRetorno) ? ` (↓${(retornoReal - taxaRetorno).toFixed(3).replace('.', ',')}%)` : ` (↑${(taxaRetorno - retornoReal).toFixed(3).replace('.', ',')}%)`;
+    colunas[7].querySelector('.taxa-retorno-real').textContent = `${(retornoReal).toFixed(3).replace('.', ',')}% ${textoVariacaoRetorno}`;
+    colunas[7].querySelector('.taxa-retorno-real').setAttribute('data-valor', retornoReal.toFixed(3));
+
+    let provento = retornos[1] * qtdeCotas;
+    colunas[8].querySelector('.provento').textContent = `R$ ${(provento).toFixed(2).replace('.', ',')}`;
+    colunas[8].querySelector('.provento').setAttribute('data-valor', provento.toFixed(2));
   }
   let valorAplicadoInput = document.getElementById(`grupo-investimento-${id}-valor-aplicado`);
   let valorizacaoLabel = document.getElementById(`grupo-investimento-${id}-valor-valorizacao`);
@@ -3728,7 +4133,10 @@ function atualizaTotaisGrupoGeral() {
       var empresaInput = linhas[l].querySelector('.descricao-input');
       var valorAplicadoInput = linhas[l].querySelector('.valor-aplicado-parte-grupo');
       var valorizacaoLabel = linhas[l].querySelector('.valorizacao');
-      prenecherDadosGrupos(codAcao, empresaInput, valorAplicadoInput, valorizacaoLabel);
+        var qtdeCotas = linhas[l].querySelector('.qtde-cota');
+        var valorMediaAcao = linhas[l].querySelector('.valor-media-acao');
+
+      prenecherDadosGrupos(codAcao, empresaInput, valorAplicadoInput, valorizacaoLabel, qtdeCotas, valorMediaAcao);
      }
     var id = tabelas[i].id.replace('grupo-investimento-','')
     atualizaTotaisGrupo(id.replace('-tabela', ''));
@@ -3746,9 +4154,10 @@ function addGrupoinvestimentoComTodos(){
         var selectInput = linhas[0].querySelector('.cod-acoes-escolha');
         selectInput.value = dados.codigo;
 
-        prenecherDadosGrupos(selectInput, linhas[0].querySelector('.descricao-input'), linhas[0].querySelector('.valor-aplicado-parte-grupo'), linhas[0].querySelector('.valorizacao'));
+        prenecherDadosGrupos(selectInput, linhas[0].querySelector('.descricao-input'), linhas[0].querySelector('.valor-aplicado-parte-grupo'), linhas[0].querySelector('.valorizacao'), linhas[0].querySelector('.qtde-cota'), linhas[0].querySelector('.valor-media-acao'));
     }
     atualizaTotaisGrupo(grupoInvestimentoIdCounter);
+    atualizarVisibilidadeColunasGrupos();
 }
 
 function criarDicionarioGruposInvestimentos(){
@@ -3857,6 +4266,7 @@ function atualizarValorAcoes() {
             }
         }
     }
+    console.log(codigosNaoEncontrados);
     buscarAcoesNaoEncontradas(codigosNaoEncontrados);
 
 }
@@ -3938,7 +4348,7 @@ function addAcao(){
             <input id="${acaoIdCounter}-valor-DY"" placeholder="0,00" class="valor-input" onblur="formatarValorInputAcoes(this, ${acaoIdCounter})" value="0,0" data-valor="0.0" onblur="atualizarValorDividendo(${acaoIdCounter})">
 
             <label for="${acaoIdCounter}-cotas">Qtde Cotas:</label>
-            <input id="${acaoIdCounter}-cotas" placeholder="0" disabled class="valor-input">
+            <input id="${acaoIdCounter}-cotas" placeholder="0" disabled class="valor-input qtde-cotas-acoes">
 
             <label for="${acaoIdCounter}-valor-cota">Valor Cota:</label>
             <input id="${acaoIdCounter}-valor-cota" placeholder="R$ 0,00" class="valor-input valor-cota-acao" onblur="formatarMoedaAcao(${acaoIdCounter})" value="R$ 0,00" data-valor="0.0">
@@ -3955,7 +4365,7 @@ function addAcao(){
             <button onclick="apagarAcao('${acaoIdCounter}')" class="remover-linha">Excluir o Ação</button>
 
             <div class="table-container">
-              <button onclick="adicionarLinhaAcao(${acaoIdCounter})" class="remover-linha">Adicionar Linha</button>
+              <button onclick="adicionarLinhaAcao(${acaoIdCounter})" class="remover-linha adicionar-linha-acao">Adicionar Linha</button>
               <button onclick="ocutarOuMostrarTabelaAcao('${acaoIdCounter}')" class="remover-linha" id="${acaoIdCounter}-botao-ocultar">Ocultar linhas</button>
                 <table>
                     <thead>
@@ -5274,6 +5684,8 @@ function redirectToLogin() {
 
 document.getElementById('logoutButton').addEventListener('click', selecionarElerTXT);
 
+window.addEventListener('beforeunload', salvarTempoDeTela);
+
 // Armazena o momento em que o usuário acessou a página
 let tempoInicio = Date.now();
 
@@ -5290,6 +5702,7 @@ function salvarTempoDeTela() {
     // Salva o novo tempo total no localStorage
     localStorage.setItem('tempoDeTela', novoTempoTotal);
 }
+
 
 function selecionarElerTXT() {
   const input = document.createElement('input');
@@ -5429,28 +5842,6 @@ async function carregarProgressoSalvo() {
     console.error("Erro ao carregar progresso local:", erro);
   }
 }
-
-
-
-
-
-
-/*
-function Carregar() {
-  fetch('/load')
-      .then(response => response.json())
-      .then(data => {
-          // Carregue os dados do texto na aplicação
-          let dicionarios = parseDicionarios(data);
-          CarregarTudo(dicionarios);
-          carregou = true;
-      })
-      .catch(error => console.error('Erro ao carregar os dados:', error));
-}
-*/
-
-
-
 
 function parseDicionarios(data) {
     localStorage.setItem('tempoPassadoCorrido', data.tempoDeUso || 0);
@@ -5694,7 +6085,7 @@ function CarregarTudo(dicionarios) {
         
         colunas[0].querySelector('select').value = codigos[l];
         
-        prenecherDadosGrupos(colunas[0].querySelector('select'), colunas[1].querySelector('input'), colunas[2].querySelector('input'), colunas[3].querySelector('label'))
+        prenecherDadosGrupos(colunas[0].querySelector('select'), colunas[1].querySelector('input'), colunas[2].querySelector('input'), colunas[3].querySelector('label'), colunas[5].querySelector('label'), colunas[6].querySelector('label'))
         contador++;
       }
       atualizaTotaisGrupo(id);
@@ -5903,6 +6294,7 @@ function ChecklistFuncao() {
     cronogramaCheckListFuncao();
     barraFiltroCheckList.forcarAtualizacao();
     atualizarSaldoCheckGeral();
+    iniciarOrdenacaoPlanilhas(true);
 }
 
 function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalendario) {
@@ -5956,6 +6348,7 @@ function clonarEBaixarTabelaCheckList(idDiv, data, idCheckList, idDias, idCalend
     // adicionar linha saldo restante:
     var linhaSaldo = document.createElement('tr');
     linhaSaldo.id = 'linhaSaldoCheckList';
+    linhaSaldo.className = 'boletim-mensal-total-filtro';
     linhaSaldo.innerHTML = `
         <td colspan="2"><strong>Saldo Restante:</strong></td>
         <td colspan="2"><label id="${idDiv}-saldoCheckList" data-valor="0.00">R$ 0,00</label></td>
@@ -6268,6 +6661,7 @@ let dicionarioMoedas = {};
 function boletimFuncaoBtn() {
   boletimFuncao();
   barraFiltroBoletins.forcarAtualizacao();
+  iniciarOrdenacaoPlanilhas();
 }
 
 function boletimFuncao() {
@@ -6282,7 +6676,9 @@ function boletimFuncao() {
   let dataHoje = new Date();
 
   dicionarioValoresMensaisCartoes = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, dataHoje);
-  dicionarioValoresMensaisCartoes["1"] = criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes["1"]);
+
+  dicionarioValoresMensaisCartoes = atualizarDicionarioBoletimCaixa(dicionarioValoresMensaisCartoes);
+
   let contadorBoletim = 1;
   let mesDataAtual = dataHoje.getMonth();
   let anoDataAtual = dataHoje.getFullYear();
@@ -6761,10 +7157,10 @@ function adicionarLinhasTabelaBoletim(dados, idTbody, id, saldoStatus=true) {
         _valor = formatarResultado(valor,2);
     }
     novaLinha.innerHTML = `
-        <td><label style="width: 200px;">Saldo Passado</label></td>
+        <td><label style="width: 200px;" data-valor="saldo Passado">Saldo Passado</label></td>
         <td><label data-valor="${valor}" style="width: 85px;">R$ ${_valor}</label></td>
-        <td><label style="width: 200px;">1</label></td>
-        <td class='boletim-mensal-saldo'><label>R$ ${_valor}</label></td>
+        <td><label style="width: 200px;" data-valor="1">1</label></td>
+        <td class='boletim-mensal-saldo'><label data-valor="${valor}">R$ ${_valor}</label></td>
     `;
     tbody.appendChild(novaLinha);
     }
@@ -6821,10 +7217,10 @@ function adicionarLinhasTabelaBoletim(dados, idTbody, id, saldoStatus=true) {
 
               novaLinha.setAttribute('valorLinha', valor);
               novaLinha.innerHTML = `
-                  <td><label style="width: 200px;">${descricao}</label></td>
+                  <td><label style="width: 200px;" data-valor="${descricao}">${descricao}</label></td>
                   <td><label data-valor="${valor}" style="width: 85px;">R$ ${_valor}</label></td>
-                  <td><label style="width: 200px;">${dia}</label></td>
-                  <td class='boletim-mensal-saldo'><label>R$ ${saldoFormatado}</label></td>
+                  <td><label style="width: 200px; data-valor="${dia}">${dia}</label></td>
+                  <td class='boletim-mensal-saldo' data-valor="${saldo}"><label>R$ ${saldoFormatado}</label></td>
               `;
 
               novaLinha.addEventListener('click', () => {
@@ -8000,6 +8396,7 @@ function funcaoBoletimAltenativo(){
   boletimFuncaoAltenativoSelecaoGeral();
   barraFiltroBoletinsAltenativo.forcarAtualizacao();
   mostrarIconer('Icone10');
+  iniciarOrdenacaoPlanilhas();
 }
 
 function boletimFuncaoAltenativoSelecaoGeral(idMesAno, idBoletim) {
@@ -8019,6 +8416,7 @@ function boletimFuncaoAltenativoSelecaoGeral(idMesAno, idBoletim) {
     boletimFuncaoAltenativo(data, '#boletim3-altenativo', 3, true, diferencia)
   }
   barraFiltroBoletinsAltenativo.forcarAtualizacao();
+  iniciarOrdenacaoPlanilhas();
 }
 
 function boletimFuncaoAltenativoSelecao(idMesAno, idBoletim, cBoletim) {
@@ -8045,7 +8443,6 @@ function boletimFuncaoAltenativo(data, idBoletim, cBoletim, boletinsGeral=false,
     }
     
     dicionarioValoresMensaisCartoes_ = calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionarioDiversos, dicionarioCofrinho, dicionarioAcoes, dicionarioProventosAcoes, dicionarioMoedas, dataHoje, qtdeMes);
-    //dicionarioValoresMensaisCartoes_["1"] = criarBaseBoletimCaixa(dicionarioValoresMensaisCartoes_["1"]);
     let contadorBoletim = cBoletim;
     let mesDataAtual = dataHoje.getMonth();
     let anoDataAtual = dataHoje.getFullYear();
@@ -8196,10 +8593,10 @@ function adicionarLinhasTabelaBoletimAlternativo(dadosMeses, idTbody, id, saldoS
 
             novaLinha.setAttribute('valorLinha', valor);
             novaLinha.innerHTML = `
-                <td><label style="width: 200px;">${descricao}</label></td>
+                <td><label style="width: 200px;" data-valor="${descricao}">${descricao}</label></td>
                 <td><label data-valor="${valor}" style="width: 85px;">R$ ${_valor}</label></td>
-                <td><label style="width: 200px;">${dados[chave].data}</label></td>
-                <td class='boletim-mensal-saldo'><label>R$ ${saldoFormatado}</label></td>
+                <td><label style="width: 200px;" data-valor="${dados[chave].data}">${dados[chave].data}</label></td>
+                <td class='boletim-mensal-saldo' data-valor="${saldoFormatado}"><label>R$ ${saldoFormatado}</label></td>
             `;
 
             novaLinha.addEventListener('click', () => {
