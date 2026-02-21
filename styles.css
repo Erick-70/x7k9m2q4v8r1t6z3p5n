@@ -1,4 +1,8 @@
-
+#grupos-investimentos-colunas-selecao {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
 .filtro-container {
   display: flex;
