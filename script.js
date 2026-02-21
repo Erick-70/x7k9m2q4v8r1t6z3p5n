@@ -4187,124 +4187,59 @@ function criarDicionarioGruposInvestimentos(){
 const BRAPI_TOKEN = "phxtxEeVjYsYqLzdfhdcQ3"
 
 const LS_CHAVE_DADOS = "dicionarioAcoesValores"
-const LS_CHAVE_DATA  = "dataAtualizacaoAcoesValores"
+const LS_CHAVE_DATA = "dataAtualizacaoAcoesValores"
+const LS_CHAVE_FECHAMENTO = "dataFechamentoAcoes"
 const intervaloAtualizacaoAcoesValores = 15 * 60 * 1000 // 15 minutos
 
-var dicionarioDadosAcoes = localStorage.getItem(LS_CHAVE_DADOS)? JSON.parse(localStorage.getItem(LS_CHAVE_DADOS)) : {};
+// carrega cache inicial
+var dicionarioDadosAcoes = localStorage.getItem(LS_CHAVE_DADOS)
+    ? JSON.parse(localStorage.getItem(LS_CHAVE_DADOS))
+    : {}
 
-async function carregarDicionarioAcoes() {
-    const agora = Date.now()
 
-    // ❌ cache inválido → busca novamente
+async function carregarDicionarioAcoes(codigos) {
+    if (!codigos || codigos.length === 0) return {}
+
     try {
+        // adiciona .SA e junta
+        const symbols = codigos.map(c => c + ".SA").join(",")
+
         const response = await fetch(
-            `https://brapi.dev/api/quote/list?token=${BRAPI_TOKEN}`
+            `https://brapi.dev/api/quote/${symbols}?token=${BRAPI_TOKEN}`
         )
 
         if (!response.ok) return {}
 
         const data = await response.json()
 
-        // 🔁 converte stocks[] → dicionário
+        if (!data.results) return {}
+
         const dicionario = {}
 
-        data.stocks.forEach(item => {
-            dicionario[item.stock] = {
-                name: item.name,
-                close: item.close,
-                change: item.change,
-                volume: item.volume,
-                market_cap: item.market_cap,
-                logo: item.logo,
+        data.results.forEach(item => {
+            const codigoLimpo = item.symbol.replace(".SA", "")
+
+            dicionario[codigoLimpo] = {
+                name: item.longName,
+                close: item.regularMarketPrice,
+                change: item.regularMarketChangePercent,
+                volume: item.regularMarketVolume,
+                market_cap: item.marketCap,
+                logo: item.logourl,
                 sector: item.sector,
                 type: item.type
             }
         })
 
-        // 💾 salva no localStorage
-        localStorage.setItem(LS_CHAVE_DADOS, JSON.stringify(dicionario))
-        localStorage.setItem(LS_CHAVE_DATA, agora.toString())
-
-        dicionarioDadosAcoes = dicionario
-
-    } catch (e) {
-        console.error(e)
-        return {}
-    }
-}
-
-function atualizarValorAcoes() {
-    const acoes = document.querySelectorAll('.acao');
-    var ultimaAtualizacao = localStorage.getItem(LS_CHAVE_DATA);
-    const agora = Date.now();
-
-    if (!ultimaAtualizacao || (agora - parseInt(ultimaAtualizacao)) > intervaloAtualizacaoAcoesValores){
-        carregarDicionarioAcoes();
-    }
-
-    var codigosNaoEncontrados = {};
-
-    for (let i = 0; i < acoes.length; i++) {
-        const codigo = acoes[i].querySelector('.codigos-acoes').value
-
-        if (codigo !== '') {
-            const inputValorCota = acoes[i].querySelector('.valor-cota-acao')
-            const idAcao = acoes[i].id.split('-')[1]
-
-            if (dicionarioDadosAcoes[codigo]) {
-                const valor = dicionarioDadosAcoes[codigo].close;
-                inputValorCota.dataset.valor = valor;
-                inputValorCota.value = formatarMoeda_resultado(valor);
-                formatarMoedaAcao(idAcao);
-                atualizarValorDividendo(idAcao);
-            } else {
-                console.warn(`Código não encontrado: ${codigo}`);
-                codigosNaoEncontrados[codigo] = {
-                    'inputValorCota': inputValorCota,
-                    'idAcao': idAcao
-                }
-            }
+        // merge com cache antigo
+        dicionarioDadosAcoes = {
+            ...dicionarioDadosAcoes,
+            ...dicionario
         }
-    }
-    console.log(codigosNaoEncontrados);
-    buscarAcoesNaoEncontradas(codigosNaoEncontrados);
-
-}
-
-async function buscarAcoesNaoEncontradas(codigosNaoEncontrados) {
-    const codigos = Object.keys(codigosNaoEncontrados)
-    var dicionario = {};
-
-    if (codigos.length === 0) return
-    try {
-        const symbols = codigos.map(c => c + ".SA").join(",")
-
-        const response = await fetch(
-            `https://brapi.dev/api/quote/list?symbols=${symbols}&token=${BRAPI_TOKEN}`
-        )
-
-        if (!response.ok) return
-
-        const data = await response.json()
-
-        if (!data.results) return
-
-        data.stocks.forEach(item => {
-            dicionario[item.stock] = {
-                name: item.name,
-                close: item.close,
-                change: item.change,
-                volume: item.volume,
-                market_cap: item.market_cap,
-                logo: item.logo,
-                sector: item.sector,
-                type: item.type
-            }   
-        })
 
         localStorage.setItem(
             LS_CHAVE_DADOS,
-            JSON.stringify(dicionario)
+            JSON.stringify(dicionarioDadosAcoes)
         )
 
         localStorage.setItem(
@@ -4312,20 +4247,128 @@ async function buscarAcoesNaoEncontradas(codigosNaoEncontrados) {
             Date.now().toString()
         )
 
-        for (const codigo of codigos) {
-            if (dicionario[codigo]) {
-                const valor = dicionario[codigo].close;
-                const { inputValorCota, idAcao } = codigosNaoEncontrados[codigo];
-                inputValorCota.dataset.valor = valor;
-                inputValorCota.value = formatarMoeda_resultado(valor);
-                formatarMoedaAcao(idAcao);
-                atualizarValorDividendo(idAcao);
-            }
-        }
+        return dicionario
 
     } catch (e) {
         console.error(e)
+        return {}
     }
+}
+
+async function atualizarValorAcoes() {
+    const acoes = document.querySelectorAll(".acao")
+
+    const ultimaAtualizacao = localStorage.getItem(LS_CHAVE_DATA)
+    const dataFechamentoSalvo = localStorage.getItem(LS_CHAVE_FECHAMENTO)
+
+    const agora = Date.now()
+    const hoje = new Date().toDateString()
+
+    const codigosDOM = new Set()
+
+    acoes.forEach(el => {
+        const codigo = el.querySelector(".codigos-acoes")?.value?.trim()
+        if (codigo) codigosDOM.add(codigo)
+    })
+
+    const codigos = Array.from(codigosDOM)
+
+    const cacheExpirado =
+        !ultimaAtualizacao ||
+        agora - parseInt(ultimaAtualizacao) > intervaloAtualizacaoAcoesValores ||
+        Object.keys(dicionarioDadosAcoes).length === 0
+
+    const codigosFaltantes = codigos.filter(
+        c => !dicionarioDadosAcoes[c]
+    )
+
+    const statusMercado = obterStatusMercadoB3()
+
+    let deveBuscar = false
+    let motivo = ""
+
+    // REGRA 1 — ação nova sempre busca
+    if (codigosFaltantes.length > 0) {
+        deveBuscar = true
+        motivo = "ação nova"
+    }
+
+    // REGRA 2 — horário normal pregão das 10hs ate as 18hs
+    else if (statusMercado === "pregao") {
+        if (cacheExpirado) {
+            deveBuscar = true
+            motivo = "pregão"
+        }
+    }
+
+    // REGRA 3 — após 18h (pegar fechamento só 1x por dia)
+    else if (statusMercado === "pos_fechamento") {
+        const jaPegouFechamentoHoje = dataFechamentoSalvo === hoje
+
+        if (!jaPegouFechamentoHoje) {
+            deveBuscar = true
+            motivo = "fechamento"
+        }
+    }
+
+    if (deveBuscar) {
+        console.log("Atualizando API →", motivo)
+
+        await carregarDicionarioAcoes(codigos)
+
+        // se foi atualização de fechamento → salva data
+        if (motivo === "fechamento") {
+            localStorage.setItem(
+                LS_CHAVE_FECHAMENTO,
+                new Date().toDateString()
+            )
+        }
+    } else {
+        console.log("Usando cache")
+    }
+
+    acoes.forEach(el => {
+        const codigo = el.querySelector(".codigos-acoes")?.value?.trim()
+        if (!codigo) return
+
+        const dados = dicionarioDadosAcoes[codigo]
+        if (!dados) return
+
+        const inputValorCota = el.querySelector(".valor-cota-acao")
+        const idAcao = el.id.split("-")[1]
+
+        if (!inputValorCota) return
+
+        const valor = dados.close
+
+        inputValorCota.dataset.valor = valor
+        inputValorCota.value = formatarMoeda_resultado(valor)
+
+        formatarMoedaAcao(idAcao)
+        atualizarValorDividendo(idAcao)
+    })
+}
+
+
+function obterStatusMercadoB3() {
+    const agora = new Date()
+
+    const agoraBR = new Date(
+        agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+    )
+
+    const diaSemana = agoraBR.getDay()
+    const hora = agoraBR.getHours()
+
+    const diaUtil = diaSemana >= 1 && diaSemana <= 5
+
+    if (!diaUtil) return "fim_semana"
+
+    if (hora >= 10 && hora < 18) return "pregao"
+
+    if (hora >= 18 || hora < 10) return "pos_fechamento"
+
+    return "fechado"
 }
 
 let acaoIdCounter = 0;
