@@ -495,7 +495,7 @@
                 </g>
                 </svg>
             </button>
-            <button id= "logoutButton" class="icon" title="Entrar"> 
+            <button id= "logoutButton" class="icon" title="Sair">
                 <img src="./icones/entra.png" alt="Entrada">
             </button>
             <!-- ... -->
@@ -926,7 +926,7 @@
                     <p class="descricao">Salvar</p>
                     <p>Abaixo, você encontrará o botão de salvar. As informações preenchidas são salvas diretamente no site e permanecem disponíveis para acesso em qualquer navegador ou aparelho. Após concluir suas atividades, lembre-se de clicar no botão "Sair" para retornar à tela de login. Isso garantirá a segurança e a privacidade dos dados salvos no sistema.</p>
                     <button onclick="salvarDicionario()" class="remover-linha">Salvar</button>
-                    <button id="logoutButton" class="remover-linha">Entrar</button>
+                    <button id="logoutButton" class="remover-linha">Sair</button>
                 </div>
             </div>
         </div>
@@ -1226,7 +1226,11 @@
                   <div style="margin: 5px; padding: 0;"></div>
                   <div> <h1 style="margin: 0; padding: 0;" id="div-Grupos-Investimento">Grupos</h1>
                       <div id="grupos-investimentos">
-                        <h3><button onclick="addGrupoinvestimento()" class="remover-linha">Adicionar Grupo</button> <button onclick="addGrupoinvestimentoComTodos()" class="remover-linha">Adicionar Grupo com Todos</button></h3>
+                        <h3><button onclick="addGrupoinvestimento()" class="remover-linha">Adicionar Grupo</button>
+                            <button onclick="addGrupoinvestimentoComTodos()" class="remover-linha">Adicionar Grupo com Todos</button>
+                            <button onclick="atualizarDadosGrupos()" class="remover-linha">Atualizar Grupos</button>
+                        </h3>
+                        <div id="grupos-investimentos-colunas-selecao"></div>
                       <div id="grupos-investimento-container"></div>
                     </div>
                   </div>
@@ -1243,7 +1247,10 @@
                           </h3>
                         <h3><button onclick="addLinhaDistribuicaoPonderada()" class="remover-linha">Adicionar ação</button></h3>
                         <h3><button onclick="addgrupoLinhaDistribuicaoPonderada()" class="remover-linha">Adiconar Grupo:</button> <select name="Grupo" id="Distribuicao-Grupos" class="descricao-input"></select></h3>
-                        <h3><button onclick="limparDistribuicaoPonderada()" class="remover-linha">Limpar</button></h3>                        
+                        <h3><button onclick="limparDistribuicaoPonderada()" class="remover-linha">Limpar</button>
+                            <button onclick="addLinhasAcoesDistribuicaoPonderada()" class="remover-linha">Lançar os Itens</button>
+                            <button onclick="removerLinhasAcoesDistribuicaoPonderada()" class="remover-linha">Excluir os Itens Lançados</button>
+                        </h3>                        
                         <table>
                               <thead>
                                   <tr>
