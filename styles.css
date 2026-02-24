@@ -405,7 +405,7 @@ textarea {
     border: 2px solid #000;
     padding: 20px;
     margin: 20px auto;
-    max-height: 400px; /* Defina uma altura máxima */
+    /*max-height: 400px; /* Defina uma altura máxima */
     overflow-y: auto; /* Permitir rolagem vertical */
 }
 
@@ -422,7 +422,7 @@ textarea {
   border-top: none; /* Remove a borda superior */
   padding: 5px;
   margin: 5px auto; /* Remove o espaço externo superior */
-  max-height: 800px; /* Defina uma altura máxima */
+  /*max-height: 800px; /* Defina uma altura máxima */
   overflow-y: auto; /* Permitir rolagem vertical */
 }
 
