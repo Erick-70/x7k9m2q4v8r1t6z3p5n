@@ -1,3 +1,29 @@
+function limparDadosMovimentacaoLivreCaixa(id) {
+    const tabela = document.getElementById(id);
+    const linhas = tabela.querySelectorAll('tr');
+
+    const dataAtual = new Date();
+    const linhasParaRemover = [];
+
+    linhas.forEach(linha => {
+        const campoData = linha.querySelector('.caixa-movimentacao-livre-data');
+        if (!campoData || !campoData.value) return;
+
+        const data = new Date(campoData.value);
+
+        if (
+            data.getMonth() !== dataAtual.getMonth() ||
+            data.getFullYear() !== dataAtual.getFullYear()
+        ) {
+            linhasParaRemover.push(linha);
+        }
+    });
+
+    linhasParaRemover.forEach(linha => {
+        linha.querySelector('.remover-linha')?.click();
+    });
+}
+
 function obterValorCelulaPlanilha(celula){
 
     if (celula === undefined) return '';
@@ -460,7 +486,10 @@ function addCaixa() {
 
             <p></p>
             <div class="caixa-body">
-                <h3>Itens da Caixa Livre <button onclick="adicionarItemCaixaLivre(${contadorCaixas})" class="remover-linha">Adicionar Item</button></h3>
+                <h3>Itens da Caixa Livre 
+                <button onclick="adicionarItemCaixaLivre(${contadorCaixas})" class="remover-linha">Adicionar Item</button>
+                <button onclick="limparDadosMovimentacaoLivreCaixa('tabela-caixa-${contadorCaixas}-movimentacao-livre')" class="remover-linha limpar-dados-movimentacao-livre-caixa">Limpar Dados</button>
+                </h3>
                 <div class="itens-caixa-container" id="itens-caixa-container-${contadorCaixas}"></div>
                 <table>
                     <thead>
@@ -861,11 +890,12 @@ function CriarDicionarioCaixas (){
 
         for (l = 0; l < linhasMovimentacaoLivre.length; l++){
             let celulas = linhasMovimentacaoLivre[l].getElementsByTagName('td');
+            let data = new Date(celulas[3].querySelector('.caixa-movimentacao-livre-data').value) || new Date();
             movimentacoesLivres[contador] = {
                 tipo: celulas[0].querySelector('.caixa-movimentacao-livre-tipo').value,
                 descricao: celulas[1].querySelector('.caixa-movimentacao-livre-descricao').value,
                 valor: parseFloat(celulas[2].querySelector('.caixa-movimentacao-livre-valor').getAttribute('data-valor')) || 0,
-                data: new Date(celulas[3].querySelector('.caixa-movimentacao-livre-data').value) || new Date()
+                data: data
             }
             contador++;
         }
@@ -1004,10 +1034,11 @@ function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
             let ultimaChave = proximaChave(dicionario);
 
             const dataISO = new Date(movimentacaoLivre.data);
+            const hoje = new Date();
+
+            if (dataISO.getMonth() !== hoje.getMonth() || dataISO.getFullYear() !== hoje.getFullYear()) return;
 
             const diaOriginal = dataISO.getUTCDate();
-
-            const hoje = new Date();
 
             const ultimoDiaMes = new Date(hoje.getFullYear(),hoje.getMonth() + 1,0).getDate();
 
@@ -5651,23 +5682,6 @@ function salvarDicionario() {
 
   notificacaoSalvamento(); // Opcional: sua função de feedback visual
   salvarProgresso(dados); // Chama a função para salvar o progresso
-
-    // ✅ Salvar também no JSONBin
-    fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
-    method: "PUT",
-    headers: {
-        "Content-Type": "application/json",
-        "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
-    },
-    body: JSON.stringify(dados)
-    })
-    .then(response => response.json())
-    .then(res => {
-    console.log("Salvo no JSONBin:", res);
-    })
-    .catch(err => {
-    console.error("Erro ao salvar no JSONBin:", err);
-    });
 }
 
 
@@ -5758,34 +5772,20 @@ function selecionarElerTXT() {
 
     const leitor = new FileReader();
 
-    leitor.onload = async function (e) {
+    leitor.onload = function (e) {
       const conteudo = e.target.result;
 
       try {
+        // Tenta converter o texto em JSON (se for necessário)
         const objeto = JSON.parse(conteudo);
 
-        // ✅ Salva local
+        // Salva no localStorage (em string)
         localStorage.setItem('dadosSalvos', JSON.stringify(objeto));
+
+        // Marca no localStorage que deve carregar após reload
         localStorage.setItem('deveCarregar', 'sim');
 
-        // ✅ Envia para JSONBin
-        try {
-          await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
-            },
-            body: JSON.stringify(objeto)
-          });
-
-          console.log("Arquivo enviado para JSONBin.");
-
-        } catch (erroCloud) {
-          console.warn("Falha ao enviar para JSONBin — continuando local:", erroCloud);
-        }
-
-        // ✅ Recarrega página
+        // Recarrega a página
         location.reload();
 
       } catch (erro) {
@@ -5835,55 +5835,23 @@ function salvarProgresso(dadosObjeto) {
   }
 }
 
-async function carregarProgressoSalvo() {
-  carregou = false;
-
-  try {
-    // 🔹 Tenta carregar do JSONBin primeiro
-    const res = await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest", {
-      headers: {
-        "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
-      }
-    });
-
-    if (!res.ok) throw new Error("Falha no JSONBin");
-
-    const json = await res.json();
-    const objeto = json.record;
-
-    const dicionarios = parseDicionarios(objeto);
-    CarregarTudo(dicionarios);
-
-    carregou = true;
-    console.log("Progresso carregado do JSONBin.");
-
-    // 🔹 Atualiza cache local (ótima prática)
-    localStorage.setItem('progressoSalvo', JSON.stringify(objeto));
-
-    return;
-
-  } catch (erro) {
-    console.warn("JSONBin falhou — usando localStorage:", erro);
-  }
-
-  // 🔹 Fallback local
+function carregarProgressoSalvo() {
+  carregou = false; // Reseta a variável carregou
   const dadosJSON = localStorage.getItem('progressoSalvo');
   if (!dadosJSON) {
-    console.warn("Nenhum progresso encontrado localmente.");
     return;
   }
 
   try {
     const objeto = JSON.parse(dadosJSON);
-    const dicionarios = parseDicionarios(objeto);
-    CarregarTudo(dicionarios);
-
-    carregou = true;
-    console.log("Progresso carregado do localStorage.");
-
+    const dicionarios = parseDicionarios(objeto); // sua função já existente
+    CarregarTudo(dicionarios); // sua função que monta tudo
+    carregou = true; // Marca como carregado
+    console.log("Progresso carregado com sucesso.");
   } catch (erro) {
-    console.error("Erro ao carregar progresso local:", erro);
+    console.error("Erro ao carregar progresso salvo:", erro);
   }
+  iniciarOrdenacaoPlanilhas();
 }
 
 function parseDicionarios(data) {
