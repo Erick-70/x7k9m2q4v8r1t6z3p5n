@@ -5682,6 +5682,23 @@ function salvarDicionario() {
 
   notificacaoSalvamento(); // Opcional: sua função de feedback visual
   salvarProgresso(dados); // Chama a função para salvar o progresso
+
+    // ✅ Salvar também no JSONBin
+    fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
+    method: "PUT",
+    headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+    },
+    body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(res => {
+    console.log("Salvo no JSONBin:", res);
+    })
+    .catch(err => {
+    console.error("Erro ao salvar no JSONBin:", err);
+    });
 }
 
 
@@ -5772,20 +5789,34 @@ function selecionarElerTXT() {
 
     const leitor = new FileReader();
 
-    leitor.onload = function (e) {
+    leitor.onload = async function (e) {
       const conteudo = e.target.result;
 
       try {
-        // Tenta converter o texto em JSON (se for necessário)
         const objeto = JSON.parse(conteudo);
 
-        // Salva no localStorage (em string)
+        // ✅ Salva local
         localStorage.setItem('dadosSalvos', JSON.stringify(objeto));
-
-        // Marca no localStorage que deve carregar após reload
         localStorage.setItem('deveCarregar', 'sim');
 
-        // Recarrega a página
+        // ✅ Envia para JSONBin
+        try {
+          await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+            },
+            body: JSON.stringify(objeto)
+          });
+
+          console.log("Arquivo enviado para JSONBin.");
+
+        } catch (erroCloud) {
+          console.warn("Falha ao enviar para JSONBin — continuando local:", erroCloud);
+        }
+
+        // ✅ Recarrega página
         location.reload();
 
       } catch (erro) {
@@ -5835,23 +5866,55 @@ function salvarProgresso(dadosObjeto) {
   }
 }
 
-function carregarProgressoSalvo() {
-  carregou = false; // Reseta a variável carregou
+async function carregarProgressoSalvo() {
+  carregou = false;
+
+  try {
+    // 🔹 Tenta carregar do JSONBin primeiro
+    const res = await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest", {
+      headers: {
+        "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+      }
+    });
+
+    if (!res.ok) throw new Error("Falha no JSONBin");
+
+    const json = await res.json();
+    const objeto = json.record;
+
+    const dicionarios = parseDicionarios(objeto);
+    CarregarTudo(dicionarios);
+
+    carregou = true;
+    console.log("Progresso carregado do JSONBin.");
+
+    // 🔹 Atualiza cache local (ótima prática)
+    localStorage.setItem('progressoSalvo', JSON.stringify(objeto));
+
+    return;
+
+  } catch (erro) {
+    console.warn("JSONBin falhou — usando localStorage:", erro);
+  }
+
+  // 🔹 Fallback local
   const dadosJSON = localStorage.getItem('progressoSalvo');
   if (!dadosJSON) {
+    console.warn("Nenhum progresso encontrado localmente.");
     return;
   }
 
   try {
     const objeto = JSON.parse(dadosJSON);
-    const dicionarios = parseDicionarios(objeto); // sua função já existente
-    CarregarTudo(dicionarios); // sua função que monta tudo
-    carregou = true; // Marca como carregado
-    console.log("Progresso carregado com sucesso.");
+    const dicionarios = parseDicionarios(objeto);
+    CarregarTudo(dicionarios);
+
+    carregou = true;
+    console.log("Progresso carregado do localStorage.");
+
   } catch (erro) {
-    console.error("Erro ao carregar progresso salvo:", erro);
+    console.error("Erro ao carregar progresso local:", erro);
   }
-  iniciarOrdenacaoPlanilhas();
 }
 
 function parseDicionarios(data) {
