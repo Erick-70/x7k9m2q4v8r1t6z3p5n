@@ -1,3 +1,204 @@
+function ordenarTodasAsPlanilhas(){
+    // receita
+    atualizarDataValorTbody('Receitas-tabela-corpo', ['texto', 'numero', 'data', 'numero', 'numero', '']);
+    ativarOrdenacaoTabelaGenerico('#Receitas-container table thead th', 'Receitas-tabela-corpo');
+
+    // dividas diversas
+    atualizarDataValorTbody('diversos-tabela-corpo', ['texto', 'numero', 'data', 'numero', 'numero', '']);
+    ativarOrdenacaoTabelaGenerico('.tabelaDiversos table thead th', 'diversos-tabela-corpo');
+
+    // Cofrinho
+    atualizarDataValorTbody('cofrinho-tabela-corpo', ['select', 'numero', 'data', 'numero', '']);
+    ativarOrdenacaoTabelaGenerico('.cofrinho table thead th', 'cofrinho-tabela-corpo');
+
+    atualizarDataValorTbody('cofrinho-metas-tabela-corpo', ['texto', 'numero', '']);
+    ativarOrdenacaoTabelaGenerico('.cofrinho-metas table thead th', 'cofrinho-metas-tabela-corpo');
+
+    // proventos investimetno
+    atualizarDataValorTbody('proventos-tabela-corpo', ['select', 'texto', 'data', 'data', 'numero', 'numero', 'numero', '']);
+    ativarOrdenacaoTabelaGenerico('#proventos-investimentos table thead th', 'proventos-tabela-corpo');
+}
+
+function atualizarDataValorTbody(tbodyId, tiposColunas = []) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
+  // ---------- PROCESSA UM TD ----------
+  function processarTd(td, index) {
+    const tipo = tiposColunas[index] ?? "";
+    if (!tipo) return;
+
+    const input = td.querySelector("input, select"); // agora aceita select também
+    if (!input) return;
+
+    let valor = "";
+
+    switch (tipo) {
+      case "texto":
+        valor = input.value?.trim() || "";
+        td.dataset.valor = valor;
+        break;
+
+      case "numero":
+        valor = input.value?.trim() || "";
+
+        if (!valor) {
+          td.dataset.valor = "";
+          break;
+        }
+
+        valor = valor
+          .replace(/r\$\s?/i, "")
+          .replace(/\./g, "")
+          .replace(",", ".")
+          .trim();
+
+        td.dataset.valor = Number(valor) || 0;
+        break;
+
+      case "data":
+        td.dataset.valor = input.value || "";
+        break;
+
+      case "select":
+        // pega o TEXTO da opção selecionada
+        if (input.tagName === "SELECT") {
+          const textoSelecionado =
+            input.selectedOptions?.[0]?.text?.trim() || "";
+          td.dataset.valor = textoSelecionado;
+        }
+        break;
+    }
+  }
+
+  // ---------- ATUALIZA TODA TABELA ----------
+  function atualizarTudo() {
+    const linhas = tbody.querySelectorAll("tr");
+
+    linhas.forEach(tr => {
+      const colunas = tr.querySelectorAll("td");
+      colunas.forEach((td, index) => processarTd(td, index));
+    });
+  }
+
+  atualizarTudo();
+
+  // ---------- AUTO ATUALIZA AO EDITAR ----------
+  if (tbody.dataset.autoValorAtivo) return;
+  tbody.dataset.autoValorAtivo = "true";
+
+  tbody.addEventListener("input", atualizarCelula);
+  tbody.addEventListener("change", atualizarCelula);
+  tbody.addEventListener("blur", atualizarCelula, true);
+
+  function atualizarCelula(event) {
+    const campo = event.target.closest("input, select"); // agora aceita select
+    if (!campo) return;
+
+    const tr = campo.closest("tr");
+    if (!tr) return;
+
+    const colunas = Array.from(tr.children);
+
+    // executa depois de qualquer cálculo ou atualização da linha
+    requestAnimationFrame(() => {
+      colunas.forEach((td, i) => processarTd(td, i));
+    });
+  }
+
+	// ---------- OBSERVA NOVAS LINHAS AUTOMATICAMENTE ----------
+	if (!tbody.dataset.observandoLinhas) {
+		tbody.dataset.observandoLinhas = "true";
+
+		const observer = new MutationObserver(mutations => {
+			mutations.forEach(mutation => {
+				mutation.addedNodes.forEach(node => {
+					if (node.nodeName === "TR") {
+						const colunas = node.querySelectorAll("td");
+
+						// espera DOM estabilizar (inputs e valores carregarem)
+						requestAnimationFrame(() => {
+							colunas.forEach((td, i) => processarTd(td, i));
+						});
+					}
+				});
+			});
+		});
+		observer.observe(tbody, { childList: true });
+	}
+}
+
+function ativarOrdenacaoTabelaGenerico(thsOuSeletor, tbodyId) {
+  let ths;
+
+  if (typeof thsOuSeletor === "string") {
+    ths = document.querySelectorAll(thsOuSeletor);
+  } else if (thsOuSeletor instanceof Element) {
+    ths = [thsOuSeletor];
+  } else {
+    ths = thsOuSeletor;
+  }
+
+  if (!ths || !ths.length) return;
+
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
+  const direcao = {};
+
+  // detecta se string é data yyyy-mm-dd
+  const ehDataISO = v => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+  ths.forEach((th, colunaIndex) => {
+    th.style.cursor = "pointer";
+
+    th.addEventListener("click", () => {
+      const linhas = Array.from(tbody.querySelectorAll("tr"));
+      direcao[colunaIndex] = !direcao[colunaIndex];
+
+      linhas.sort((a, b) => {
+        const tdA = a.children[colunaIndex];
+        const tdB = b.children[colunaIndex];
+
+        let valorA = (tdA?.dataset.valor ?? "").trim();
+        let valorB = (tdB?.dataset.valor ?? "").trim();
+
+        // valores vazios sempre no final
+        if (!valorA && !valorB) return 0;
+        if (!valorA) return 1;
+        if (!valorB) return -1;
+
+        // ---------- NUMERO ----------
+        const numA = parseFloat(valorA);
+        const numB = parseFloat(valorB);
+
+        if (!isNaN(numA) && !isNaN(numB) && !ehDataISO(valorA)) {
+          return direcao[colunaIndex]
+            ? numA - numB
+            : numB - numA;
+        }
+
+        // ---------- DATA ----------
+        if (ehDataISO(valorA) && ehDataISO(valorB)) {
+          const timeA = new Date(valorA).getTime();
+          const timeB = new Date(valorB).getTime();
+
+          return direcao[colunaIndex]
+            ? timeA - timeB
+            : timeB - timeA;
+        }
+
+        // ---------- TEXTO ----------
+        return direcao[colunaIndex]
+          ? valorA.localeCompare(valorB, "pt-BR", { sensitivity: "base" })
+          : valorB.localeCompare(valorA, "pt-BR", { sensitivity: "base" });
+      });
+
+      tbody.append(...linhas);
+    });
+  });
+}
+
 function limparDadosMovimentacaoLivreCaixa(id) {
     const tabela = document.getElementById(id);
     const linhas = tabela.querySelectorAll('tr');
@@ -7,7 +208,11 @@ function limparDadosMovimentacaoLivreCaixa(id) {
 
     linhas.forEach(linha => {
         const campoData = linha.querySelector('.caixa-movimentacao-livre-data');
+        const campoMovimentacao = linha.querySelector('.caixa-movimentacao-livre-tipo');
+
         if (!campoData || !campoData.value) return;
+
+        if (campoMovimentacao.value === 'entrada-mensal') return;
 
         const data = new Date(campoData.value);
 
@@ -490,7 +695,7 @@ function addCaixa() {
                 <button onclick="adicionarItemCaixaLivre(${contadorCaixas})" class="remover-linha">Adicionar Item</button>
                 <button onclick="limparDadosMovimentacaoLivreCaixa('tabela-caixa-${contadorCaixas}-movimentacao-livre')" class="remover-linha limpar-dados-movimentacao-livre-caixa">Limpar Dados</button>
                 </h3>
-                <div class="itens-caixa-container" id="itens-caixa-container-${contadorCaixas}"></div>
+                <div class="itens-caixa-container" id="itens-caixa-container-${contadorCaixas}">
                 <table>
                     <thead>
                         <tr>
@@ -505,12 +710,13 @@ function addCaixa() {
                         <!-- Linhas da tabela serão adicionadas aqui -->
                     </tbody>
                 </table>
+              </div>
             </div>
 
             <p></p>
             <div class="caixa-body">
                 <h3>Itens da Caixa Fixa <button onclick="adicionarItemCaixaFixa(${contadorCaixas})" class="remover-linha">Adicionar Item</button></h3>
-                <div class="itens-caixa-container" id="itens-caixa-fixa-container-${contadorCaixas}"></div>
+                <div class="itens-caixa-container" id="itens-caixa-fixa-container-${contadorCaixas}">
                 <table>
                     <thead>
                         <tr>
@@ -524,6 +730,7 @@ function addCaixa() {
                         <!-- Linhas da tabela serão adicionadas aqui -->
                     </tbody>
                 </table>
+              </div>
             </div>
 
             <p></p>
@@ -548,6 +755,15 @@ function addCaixa() {
         </div>
     `
     divContainer.appendChild(novaDiv);
+
+    // movimentacao livre
+    atualizarDataValorTbody(`tabela-caixa-${contadorCaixas}-movimentacao-livre`, ['select', 'texto', 'numero', 'data', '']);
+    ativarOrdenacaoTabelaGenerico(`#itens-caixa-container-${contadorCaixas} table thead th`, `tabela-caixa-${contadorCaixas}-movimentacao-livre`);
+
+    // movimentacao fixas
+    atualizarDataValorTbody(`tabela-caixa-${contadorCaixas}-movimentacao-fixa`, ['select', 'select', 'numero', '']);
+    ativarOrdenacaoTabelaGenerico(`#itens-caixa-fixa-container-${contadorCaixas} table thead th`, `tabela-caixa-${contadorCaixas}-movimentacao-fixa`);
+
     contadorCaixas++;
 }
 
@@ -568,6 +784,7 @@ function adicionarItemCaixaLivre(idCaixa) {
                 <option value="entrada">Entrada</option>
                 <option value="saida">Saída</option>
                 <option value="retorno">Retornar</option>
+                <option value="entrada-mensal">Entrada Mensal</option>
             </select>
         </td>
         <td><input type="text" class="caixa-movimentacao-livre-descricao descricao-input" placeholder="Descrição"></td>
@@ -850,7 +1067,7 @@ function ataulizarSaldoCaixas(idCaixa) {
         let inputValor = celulas[2].querySelector('.caixa-movimentacao-livre-valor');
         let tipoMovimentacao = celulas[0].querySelector('.caixa-movimentacao-livre-tipo').value;
         let valor = parseFloat(inputValor.getAttribute('data-valor')) || 0;
-        if (tipoMovimentacao === 'entrada') {
+        if (tipoMovimentacao === 'entrada' || tipoMovimentacao === 'entrada-mensal') {
             saldoAtual += valor;
         } else if (tipoMovimentacao === 'saida' || tipoMovimentacao === 'retorno') {
             saldoAtual -= valor;
@@ -931,8 +1148,9 @@ function atualizarDicionarioBoletimCaixa(dicionarios){
     Object.values(dicionarios).forEach((dado) => {
         if (contador === 0) {
             dado = criarBaseBoletimCaixa(dado, true);
+        } else {
+            dado = criarBaseBoletimCaixa(dado);
         }
-        dado = criarBaseBoletimCaixa(dado);
         contador++;
     })
     return dicionarios;
@@ -940,6 +1158,7 @@ function atualizarDicionarioBoletimCaixa(dicionarios){
 
 
 var dicionarioCronogramaCaixas = {};
+var linhasRepetir = []; let contadorMesRepeticao = 0;
 
 function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
     var baseDescricao = {
@@ -955,6 +1174,8 @@ function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
     var dicionarioCaixas = CriarDicionarioCaixas();
 
     let contador = 0; let contadorCaixas = 0;
+
+    if (ehPrimeiro) {linhasRepetir = []; contadorMesRepeticao = 0;}
 
     Object.values(dicionarioCaixas).forEach((dado) => {
         var nomeCaixa = dado.nome;
@@ -1025,10 +1246,24 @@ function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
             });
         });
 
-        if (!ehPrimeiro) return;
+        if (!ehPrimeiro) {
+
+            linhasRepetir.forEach(item => {
+                var itemModificado = { ...item };
+                
+                itemModificado.dia = obterDiaUtil(itemModificado.data, itemModificado.dia, contadorMesRepeticao);
+
+                dicionario[proximaChave(dicionario)] = itemModificado;
+
+                contador++;
+            });
+
+            contadorMesRepeticao++;
+            return;
+        }
 
         Object.values(movimentacoesLivres).forEach((movimentacaoLivre) => {
-
+            let repetir = false;
             var descricao = movimentacaoLivre.descricao;
             var valor = movimentacaoLivre.valor;
             let ultimaChave = proximaChave(dicionario);
@@ -1036,7 +1271,9 @@ function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
             const dataISO = new Date(movimentacaoLivre.data);
             const hoje = new Date();
 
-            if (dataISO.getMonth() !== hoje.getMonth() || dataISO.getFullYear() !== hoje.getFullYear()) return;
+            if (movimentacaoLivre.tipo === 'entrada-mensal'){
+                repetir = true;
+            } else if (dataISO.getMonth() !== hoje.getMonth() || dataISO.getFullYear() !== hoje.getFullYear()) return;
 
             const diaOriginal = dataISO.getUTCDate();
 
@@ -1049,6 +1286,10 @@ function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
             if (movimentacaoLivre.tipo === 'entrada') {
                 descricao_ = `Caixa ${nomeCaixa} - Entrada - ${descricao}`;
                 valor_ = valor*-1;
+            } else if (movimentacaoLivre.tipo === 'entrada-mensal'){
+                descricao_ = `Caixa ${nomeCaixa} - Entrada Mensal - ${descricao}`;
+                valor_ = valor*-1;
+                repetir = true;
             } else {
                 descricao_ = `Caixa ${nomeCaixa} - Saida - ${descricao}`;
                 valor_ = valor;
@@ -1072,6 +1313,8 @@ function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
             }
             
             var itemModificado = { ..._ }; // cria cópia real
+            var itemModificado1 = { ..._ }; // copia 2
+            if (repetir) {linhasRepetir.push(itemModificado1);}
             dicionarioCronogramaCaixas[contadorCaixas][contador] = itemModificado;
             dicionarioCronogramaCaixas[contadorCaixas][contador].valor = valor_*-1;
             dicionarioCronogramaCaixas[contadorCaixas][contador].descricao = `${movimentacaoLivre.tipo} - ${descricao}`;
@@ -1092,6 +1335,20 @@ function proximaChave(dicionario) {
     );
 
     return String(ultima + 1);
+}
+
+function obterDiaUtil(dataBase, diaDesejado, contadorMeses) {
+    const [_, mes, ano] = dataBase.split("/");
+
+    // cria data no mês futuro (dia 1 só para calcular o mês)
+    const data = new Date(ano, mes - 1, 1);
+    data.setMonth(data.getMonth() + contadorMeses);
+
+    // último dia do mês alvo
+    const ultimoDiaMes = new Date( data.getFullYear(), data.getMonth() + 1, 0).getDate();
+
+    // retorna o menor entre o desejado e o máximo do mês
+    return Math.min(diaDesejado, ultimoDiaMes);
 }
 
 let lsitaItensFixos = [];
@@ -1133,21 +1390,11 @@ function atualizarCaixaValoresFixos () {
     });
 }
 
-
-
 function chamarCaixas(){
     atualizarCaixaValoresFixos();
     criarCronogramaCaixas();
     mostrarIconer('Icone12');
 }
-
-
-
-
-
-
-
-
 
 async function baixarModelo() {
     function formatarData(data) {
@@ -3013,7 +3260,7 @@ function addMoeda(){
 
             <button onclick="apagarMoeda('${moedaIdCounter}')" class="remover-linha">Excluir Moeda</button>
 
-            <div class="table-container">
+            <div class="table-container" id='moeda-movimentacao-${moedaIdCounter}'>
             <button onclick="adicionarLinhaMoeda(${moedaIdCounter})" class="remover-linha">Adicionar Linha</button>
                 <table>
                     <thead>
@@ -3032,6 +3279,9 @@ function addMoeda(){
             </div>
         </div>`
     containerCambio.appendChild(novaMoeda);
+
+		atualizarDataValorTbody(`moeda-${moedaIdCounter}-tabela-corpo`, ['select', 'numero', 'data', 'numero', 'numero', '']);
+		ativarOrdenacaoTabelaGenerico(`#moeda-movimentacao-${moedaIdCounter} table thead th`, `moeda-${moedaIdCounter}-tabela-corpo`);
 }
 
 function apagarMoeda(id){
@@ -3519,6 +3769,11 @@ function gerarGraficoBarrasInvestimento(dados) {
 }
 
 function filtroProvento() {
+  function formatarData(data) {
+    if (!data) return "";
+    const [ano, mes, dia] = data.split("-");
+    return `${dia}/${mes}/${ano}`;
+  }
   let textoFiltro = document.getElementById("filtro-Proventos").value.toLowerCase();
   let tabelaCorpo = document.getElementById("proventos-tabela-corpo");
   let linhas = tabelaCorpo.getElementsByTagName("tr");
@@ -3530,8 +3785,15 @@ function filtroProvento() {
     if (coluna) {
       let textoColuna = coluna.querySelector('.nome-empresa').value.toLowerCase();
       let textoColunaCodigo = colunaCodigo.querySelector('.cod-acoes-escolha').value.toLowerCase();
+      let dataCorte = linhas[i].getElementsByTagName("td")[2].querySelector('.data-input').value;
+      let dataPagamento = linhas[i].getElementsByTagName("td")[3].querySelector('.data-input').value;
+
+      dataCorte = formatarData(dataCorte);
+      dataPagamento = formatarData(dataPagamento);
+
+      let textoCompleto = textoColuna+textoColunaCodigo+dataCorte+dataPagamento;
       
-      if (textoColuna.includes(textoFiltro) || textoColunaCodigo.includes(textoFiltro)) {
+      if (textoCompleto.includes(textoFiltro)) {
         linhas[i].style.display = "";
       } else {
         linhas[i].style.display = "none";
@@ -4438,7 +4700,7 @@ function addAcao(){
 
             <button onclick="apagarAcao('${acaoIdCounter}')" class="remover-linha">Excluir o Ação</button>
 
-            <div class="table-container">
+            <div class="table-container" id='acao-investimento-movimentacao-${acaoIdCounter}'>
               <button onclick="adicionarLinhaAcao(${acaoIdCounter})" class="remover-linha adicionar-linha-acao">Adicionar Linha</button>
               <button onclick="ocutarOuMostrarTabelaAcao('${acaoIdCounter}')" class="remover-linha" id="${acaoIdCounter}-botao-ocultar">Ocultar linhas</button>
                 <table>
@@ -4460,6 +4722,9 @@ function addAcao(){
         </div>`
 
     containerAcao.appendChild(novaAcao);
+
+		atualizarDataValorTbody(`${acaoIdCounter}-tabela-corpo-acao`, ['select', 'numero', 'data', 'numero', 'numero', '']);
+		ativarOrdenacaoTabelaGenerico(`#acao-investimento-movimentacao-${acaoIdCounter} table thead th`, `${acaoIdCounter}-tabela-corpo-acao`);
 }
 
 function ocutarOuMostrarTabelaAcao(id){
@@ -6274,6 +6539,8 @@ function limparConteudo() {
     cartaoIdCounter = 0;
     acaoIdCounter = 0;
     moedaIdCounter = 0;
+    grupoInvestimentoIdCounter = 0;
+    contadorCaixas = 0;
 
     // Remover todas as linhas das tabelas
     var tabelaReceitas = document.getElementById('Receitas-tabela-corpo');
@@ -6283,7 +6550,7 @@ function limparConteudo() {
     var cambioContainer = document.getElementById('cambio-container');
 
     // Limpar os containers de ações e proventos
-    var acaosContainer = document.getElementById('acoes-container');
+    var acaosContainer = document.getElementById('acao-container');
     var tabelaproventos = document.getElementById('proventos-tabela-corpo');
     var tabelagrupos = document.getElementById('grupos-investimento-container');
     var tabeldDistribuicaoPonderada = document.getElementById('distribuicao-ponderada-tabela-corpo');
@@ -7820,6 +8087,9 @@ function addCartao() {
         adicionarLinha(cartaoId);
         atualizarFaturaCartao(cartaoId)
     });
+
+		atualizarDataValorTbody(`${cartaoId}-tabela-corpo`, ['texto', 'numero', 'data', 'numero', 'numero', '']);
+		ativarOrdenacaoTabelaGenerico(`.table-container-${cartaoId} table thead th`, `${cartaoId}-tabela-corpo`);
 }
 
 function adicionarLinha(cartaoId) {
