@@ -6533,6 +6533,7 @@ function CarregarTudo(dicionarios) {
 
     boletimFuncao();
     historicoInvestimentos();
+	ordenarTodasAsPlanilhas();
 }
 
 function limparConteudo() {
