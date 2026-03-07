@@ -1144,12 +1144,20 @@ function CriarDicionarioCaixas (){
 
 
 function atualizarDicionarioBoletimCaixa(dicionarios){
-    let contador = 0;
+    let contador = 0; contadorMesRepeticao = 0;
     Object.values(dicionarios).forEach((dado) => {
         if (contador === 0) {
             dado = criarBaseBoletimCaixa(dado, true);
         } else {
             dado = criarBaseBoletimCaixa(dado);
+            linhasRepetir.forEach(item => {
+                var itemModificado = { ...item };
+                
+                itemModificado.dia = obterDiaUtil(itemModificado.data, itemModificado.dia, contadorMesRepeticao);
+
+                dado[proximaChave(dado)] = itemModificado;
+            });
+            contadorMesRepeticao++;
         }
         contador++;
     })
@@ -1246,21 +1254,7 @@ function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
             });
         });
 
-        if (!ehPrimeiro) {
-
-            linhasRepetir.forEach(item => {
-                var itemModificado = { ...item };
-                
-                itemModificado.dia = obterDiaUtil(itemModificado.data, itemModificado.dia, contadorMesRepeticao);
-
-                dicionario[proximaChave(dicionario)] = itemModificado;
-
-                contador++;
-            });
-
-            contadorMesRepeticao++;
-            return;
-        }
+        if (!ehPrimeiro) {return;}
 
         Object.values(movimentacoesLivres).forEach((movimentacaoLivre) => {
             let repetir = false;
@@ -5967,6 +5961,7 @@ function salvarDicionario() {
 }
 
 
+
 function notificacaoSalvamento () {
     if (listaNotificacaoExplicacaoLinha.length > 0) {
         let toastRemover = listaNotificacaoExplicacaoLinha.pop();
@@ -6533,7 +6528,6 @@ function CarregarTudo(dicionarios) {
 
     boletimFuncao();
     historicoInvestimentos();
-	ordenarTodasAsPlanilhas();
 }
 
 function limparConteudo() {
