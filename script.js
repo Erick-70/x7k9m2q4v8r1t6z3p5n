@@ -1,3 +1,4 @@
+ordenarTodasAsPlanilhas();
 function ordenarTodasAsPlanilhas(){
     // receita
     atualizarDataValorTbody('Receitas-tabela-corpo', ['texto', 'numero', 'data', 'numero', 'numero', '']);
