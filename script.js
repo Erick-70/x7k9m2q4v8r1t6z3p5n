@@ -6175,6 +6175,8 @@ async function carregarProgressoSalvo() {
   } catch (erro) {
     console.error("Erro ao carregar progresso local:", erro);
   }
+	iniciarOrdenacaoPlanilhas();
+	ordenarTodasAsPlanilhas();
 }
 
 function parseDicionarios(data) {
