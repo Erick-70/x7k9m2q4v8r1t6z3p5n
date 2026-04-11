@@ -1,4 +1,52 @@
-ordenarTodasAsPlanilhas();
+async function BaixarDadosAcoes(){
+    function formatarDataExcel(data) {
+        if (!data) return '';
+
+        const [ano, mes, dia] = data.split('-');
+        return `${dia}/${mes}/${ano}`;
+    }
+
+    dicionarioAcoes = criarDicionarioAcao();
+
+
+    var DadosAcoes = [['Cod. Ação', 'Empresa', 'Valor Cota']]
+    var dadosMovimentacoes = [['Cod. Ação', 'Movimentação', 'Valor', 'Data', 'Qtde']]
+    Object.values(dicionarioAcoes).forEach(dados => {
+        DadosAcoes.push([
+            dados.codigo,
+            dados.nomeEmpresa,
+            dados.valorCota
+        ])
+
+        Object.values(dados.movimentacoes).forEach(movimentacoes => {
+            dadosMovimentacoes.push([
+                dados.codigo,
+                movimentacoes.movimentacao,
+                movimentacoes.valor,
+                formatarDataExcel(movimentacoes.data),
+                movimentacoes.Qtde
+            ])
+        })
+    })
+
+    const response = await fetch("public/Preencher_Dividendos.xlsx")
+    const arrayBuffer = await response.arrayBuffer()
+
+    const workbook = XLSX.read(arrayBuffer, { type: "array" })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+
+    XLSX.utils.sheet_add_aoa(sheet, DadosAcoes, { origin: "G1" })
+
+
+    XLSX.utils.sheet_add_aoa(sheet, dadosMovimentacoes, { origin: "A1" })
+
+
+    XLSX.utils.sheet_add_aoa(sheet, [['']], { origin: "F1" })
+
+    XLSX.writeFile(workbook, "Dados_Ações.xlsx")
+}
+
 function ordenarTodasAsPlanilhas(){
     // receita
     atualizarDataValorTbody('Receitas-tabela-corpo', ['texto', 'numero', 'data', 'numero', 'numero', '']);
@@ -1394,7 +1442,7 @@ function chamarCaixas(){
 async function baixarModelo() {
     function formatarData(data) {
         let _ = new Date(data);
-        var resultado = new Date(_.getFullYear(), _.getMonth(), _.getDate() +2);
+        var resultado = new Date(_.getFullYear(), _.getMonth(), _.getDate() +1);
         return resultado;
     }
 
@@ -2977,6 +3025,7 @@ function limparFiltroDividasDiversas(){
 
 function calcularSetores() {
   dicionarios = separarMovimentacoes(calcularValoresMensais(atualizarDadosReceitas(), atualizarDadosCartoes(), atualizarDadosDiversos(), criarDicionarioCofrinho(), criarDicionarioAcao(), criarDicionarioProventosAcoes(), criarDicionarioMoedas(), new Date()))
+  
   criarGraficosPizzaSetores(dicionarios[0], dicionarios[1])
 }
 
@@ -4489,37 +4538,39 @@ async function carregarDicionarioAcoes(codigos) {
     if (!codigos || codigos.length === 0) return {}
 
     try {
-        // adiciona .SA e junta
+
         const symbols = codigos.map(c => c + ".SA").join(",")
 
         const response = await fetch(
-            `https://brapi.dev/api/quote/${symbols}?token=${BRAPI_TOKEN}`
+            `https://corsproxy.io/?https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`
         )
 
         if (!response.ok) return {}
 
         const data = await response.json()
 
-        if (!data.results) return {}
+        const resultados = data.quoteResponse?.result
+        if (!resultados) return {}
 
         const dicionario = {}
 
-        data.results.forEach(item => {
+        resultados.forEach(item => {
+
             const codigoLimpo = item.symbol.replace(".SA", "")
 
             dicionario[codigoLimpo] = {
-                name: item.longName,
+                name: item.longName || item.shortName || codigoLimpo,
                 close: item.regularMarketPrice,
                 change: item.regularMarketChangePercent,
                 volume: item.regularMarketVolume,
-                market_cap: item.marketCap,
-                logo: item.logourl,
-                sector: item.sector,
-                type: item.type
+                market_cap: item.marketCap || null,
+                logo: null,
+                sector: null,
+                type: item.quoteType
             }
+
         })
 
-        // merge com cache antigo
         dicionarioDadosAcoes = {
             ...dicionarioDadosAcoes,
             ...dicionario
@@ -5962,7 +6013,6 @@ function salvarDicionario() {
 }
 
 
-
 function notificacaoSalvamento () {
     if (listaNotificacaoExplicacaoLinha.length > 0) {
         let toastRemover = listaNotificacaoExplicacaoLinha.pop();
@@ -6176,8 +6226,9 @@ async function carregarProgressoSalvo() {
   } catch (erro) {
     console.error("Erro ao carregar progresso local:", erro);
   }
-	iniciarOrdenacaoPlanilhas();
-	ordenarTodasAsPlanilhas();
+  
+  iniciarOrdenacaoPlanilhas();
+  ordenarTodasAsPlanilhas();
 }
 
 function parseDicionarios(data) {
