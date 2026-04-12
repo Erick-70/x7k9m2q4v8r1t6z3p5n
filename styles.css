@@ -1,3 +1,30 @@
+.carregando {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.loader-box {
+    text-align: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #ccc;
+    border-top: 5px solid #4CAF50;
+    border-radius: 50%;
+    animation: girar 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes girar {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
 #grupos-investimentos-colunas-selecao {
     display: flex;
     flex-wrap: wrap;
