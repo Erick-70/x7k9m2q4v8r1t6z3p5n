@@ -6178,6 +6178,7 @@ function salvarProgresso(dadosObjeto) {
 }
 
 async function carregarProgressoSalvo() {
+    mostrarIconer('carregando');
   carregou = false;
 
   try {
