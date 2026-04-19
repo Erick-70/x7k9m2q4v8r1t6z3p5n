@@ -495,6 +495,9 @@
                 </g>
                 </svg>
             </button>
+            <button onclick="restaurarEstadoAnterior()" class="icon" title="Retomar Tudo">
+                <img src="./icones/retorna.png" alt="Retomar Tudo">
+            </button>
             <button id= "logoutButton" class="icon" title="Sair">
                 <img src="./icones/entra.png" alt="Entrada">
             </button>
@@ -937,7 +940,7 @@
                 </div>
             </div>
             <div class="paginaPrincipal" id="paginaPrincipal">
-                <div class="carregando div-pagina" id="telaCarregando">
+                <div class="carregando div-pagina Icone0" id="telaCarregando">
                     <div class="loader-box">
                         <div class="spinner"></div>
                         <p id="textoCarregando">Carregando dados...</p>
@@ -1041,8 +1044,8 @@
                 </div>
                 <!-- Aqui é o Icone 4 -->
                 <div class="Icone4">
-                    <h1 style="margin: 0; padding: 0;">Boletins Mensais <button onclick="copiarEabrir()" class="remover-linha _PC">Emitir PDF</button></h1>
-                    <p class="">Saldo do Mês Passado: <input id="saldoMesPassado" class="valor-input" value="R$ 0,00" data-valor="0.00" onblur="atualizarSaldoDoMesPassado(this)"></p>
+                    <h1 style="margin: 0; padding: 0;">Boletins Mensais <button onclick="abrirTabela()" class="remover-linha _PC">Abrir em Nova Aba</button></h1>
+                    <p class="p-saldo-mes-passado">Saldo do Mês Passado: <input id="saldoMesPassado" class="valor-input" value="R$ 0,00" data-valor="0.00" onblur="atualizarSaldoDoMesPassado(this)"></p>
                   <div id="filtrosBoletins"></div>
                     <div class="tabelaBoletim">
                         <div class="boletim" id="boletim1"></div>
