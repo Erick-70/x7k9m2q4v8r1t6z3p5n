@@ -1,3 +1,418 @@
+function pegarDadosCheckList() {
+    let data = new Date();
+    let diaHoje = data.getDate();
+    ChecklistFuncao();
+    let dados = {
+        "Vencidos": {},
+        "Vencer": {}
+    };
+
+    var tabela = document.querySelector('#tabelaCheckList');
+    var linhas = tabela.querySelectorAll('tr');
+
+    let contadorVencido = 0; let contadorVencer = 0;
+    for (var i = 0; i < linhas.length; i++) {
+        var linha = linhas[i];
+        var colunas = linha.querySelectorAll('td');
+        if (colunas.length < 4) {continue}
+
+        var status = colunas[3].querySelector('input').checked;
+
+        if (status) {continue}
+
+        // descricao, valor e dia são label não imput
+        
+        var descricao = colunas[0].querySelector('label').textContent;
+        var valor = colunas[1].querySelector('label').textContent;
+        var dia = colunas[2].querySelector('label').textContent;
+
+        let diaN = parseInt(dia);
+
+        if (diaN < diaHoje) {
+            dados["Vencidos"][contadorVencido] = {
+                "descricao": descricao,
+                "valor": valor,
+                "dia": dia
+            }
+            contadorVencido++;
+        } else if (diaN < diaHoje + 4) {
+            dados["Vencer"][contadorVencer] = {
+                "descricao": descricao,
+                "valor": valor,
+                "dia": dia
+            }
+            contadorVencer++;
+        }
+    }
+    return dados;
+}
+
+function notificacaoCheckListUnica() {
+
+    const dados = pegarDadosCheckList();
+
+    const vencidos = Object.values(dados["Vencidos"]);
+    const vencer = Object.values(dados["Vencer"]);
+
+    if (vencidos.length === 0 && vencer.length === 0) return;
+
+    let texto = "";
+
+    if (vencidos.length > 0) {
+        texto += "<b>Vencidos:</b>";
+        vencidos.forEach(item => {
+            texto += `dia ${item.dia}: ${item.descricao} no valor de ${item.valor}<br>`;
+        });
+        texto += "<br>";
+    }
+
+    if (vencer.length > 0) {
+        texto += "<b>A vencer Nos Próximos 3 dias:</b>";
+        vencer.forEach(item => {
+            texto += `dia ${item.dia}: ${item.descricao} no valor de ${item.valor}<br>`;
+        });
+    }
+
+    notificacaoExplicacaoLinha(texto);
+}
+
+function criarToast(conteudo) {
+    let toast = document.createElement("div");
+    toast.className = "toast";
+    toast.innerHTML = conteudo;
+
+    let closeButton = document.createElement("button");
+    closeButton.className = "remover-linha";
+    closeButton.innerHTML = "✖";
+
+    closeButton.onclick = function () {
+        toast.style.animation = "fadeOut 0.5s ease-in-out";
+        setTimeout(() => toast.remove(), 500);
+    };
+
+    toast.appendChild(closeButton);
+
+    return toast;
+}
+
+
+
+
+
+function restaurarEstadoAnterior() {
+
+  carregou = false;
+
+  const dadosJSON = localStorage.getItem('progressoSalvo');
+
+  if (!dadosJSON) {
+    console.warn("Nenhum progresso salvo encontrado");
+    return;
+  }
+
+  try {
+    const objeto = JSON.parse(dadosJSON);
+
+    const dicionarios = parseDicionarios(objeto);
+
+    // 🔥 limpa a tela antes (importante)
+    document.body.innerHTML = document.body.innerHTML;
+
+    // 🔥 recria tudo
+    CarregarTudo(dicionarios);
+
+    carregou = true;
+
+    console.log("Estado restaurado com sucesso");
+
+    // 🔥 reordenar e ajustar
+    iniciarOrdenacaoPlanilhas();
+    ordenarTodasAsPlanilhas();
+    mostrarIconer('Icone4');
+
+    // 🔥 MUITO IMPORTANTE: sincroniza com espelho
+    salvarProgressoLeve();
+
+  } catch (erro) {
+    console.error("Erro ao restaurar estado:", erro);
+  }
+}
+
+
+
+// =========================
+// 🔥 CONFIGURAÇÃO INICIAL
+// =========================
+
+// Detecta se é aba espelho
+const MODO_ESPELHO = window.opener != null;
+
+// Canal de comunicação entre abas
+const canal = new BroadcastChannel("financeiro");
+
+// Controle para evitar loops
+let atualizando = false;
+
+
+// =========================
+// 🚀 ABRIR NOVA ABA (ESPELHO)
+// =========================
+function abrirTabela() {
+    salvarProgressoLeve(); // salva antes
+    window.open(window.location.href, "_blank");
+}
+
+
+// =========================
+// 🔄 SINCRONIZAÇÃO ENTRE ABAS
+// =========================
+
+// Recebe atualização em tempo real
+canal.onmessage = (event) => {
+    atualizarTelaComDados(event.data);
+};
+
+// Backup via localStorage
+window.addEventListener("storage", (event) => {
+    if (typeof carregou !== 'undefined' && carregou === false) return;
+
+    if (event.key === "progressoLeve") {
+        atualizarTelaComDados(JSON.parse(event.newValue));
+    }
+});
+
+
+// =========================
+// 🔄 ATUALIZAR TELA
+// =========================
+function atualizarTelaComDados(dados) {
+    if (atualizando) return;
+    atualizando = true;
+
+    localStorage.setItem('progressoLeve', JSON.stringify(dados));
+
+    if (MODO_ESPELHO) {
+        boletimFuncaoLeve();
+    }
+
+    setTimeout(() => atualizando = false, 100);
+}
+
+
+// =========================
+// 💾 SALVAR DADOS (LEVE)
+// =========================
+function salvarProgressoLeve() {
+  let dados = {
+      dicionarioReceitas: atualizarDadosReceitas(),
+      dicionarioCartoes: atualizarDadosCartoes(),
+      dicionarioDiversos: atualizarDadosDiversos(),
+      saldoDoMesPassado: `${document.getElementById('saldoMesPassado').value}||${document.getElementById('saldoMesPassado').getAttribute('data-valor')}`,
+      rendimento: document.getElementById('rendimento').getAttribute('data-valor') || 0,
+      dicionarioCofrinho: criarDicionarioCofrinho(),
+      dicionarioCofrinhoMetas: criarDicionarioCofrinhoMetas() || {},
+      dicionarioAcoes: criarDicionarioAcao(),
+      dicionarioProventosAcoes: criarDicionarioProventosAcoes(),
+      dicionarioGruposAcoes: criarDicionarioGruposInvestimentos(),
+      dicionarioMoedas: criarDicionarioMoedas(),
+      dicionarioCaixas: CriarDicionarioCaixas()
+  };
+
+  localStorage.setItem('progressoLeve', JSON.stringify(dados));
+
+  // envia para outras abas
+  canal.postMessage(dados);
+}
+
+
+// =========================
+// 🎯 MODO ESPELHO (AO CARREGAR)
+// =========================
+document.addEventListener("DOMContentLoaded", () => {
+
+    if (MODO_ESPELHO) {
+        console.log("Modo espelho ativado");
+
+        document.querySelectorAll('#iconPanel, .p-saldo-mes-passado, .remover-linha _PC')
+            .forEach(el => el.style.display = 'none');
+
+        boletimFuncaoLeve();
+    }
+
+    // 🔥 AUTO SAVE SÓ NA ABA PRINCIPAL
+    if (!MODO_ESPELHO) {
+        iniciarAutoSave();
+    }
+
+});
+
+let timeoutSalvar;
+
+function iniciarAutoSave() {
+    const observer = new MutationObserver(() => {
+
+        clearTimeout(timeoutSalvar);
+
+        timeoutSalvar = setTimeout(() => {
+            console.log("Auto salvando...");
+            salvarProgressoLeve();
+        }, 500);
+
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true
+    });
+}
+
+
+function boletimFuncaoLeve() {
+  const dadosSalvos = localStorage.getItem('progressoLeve');
+
+  if (!dadosSalvos) {
+    console.warn("Sem dados no localStorage");
+    return;
+  }
+
+  const dados = JSON.parse(dadosSalvos);
+
+  let partesSaldo = dados.saldoDoMesPassado.split("||");
+  document.getElementById('saldoMesPassado').value = partesSaldo[0];
+  document.getElementById('saldoMesPassado').setAttribute('data-valor', partesSaldo[1]);
+
+  // 🔥 agora usa direto os dados
+  let dicionarioReceitas = dados.dicionarioReceitas || {};
+  let dicionarioCartoes = dados.dicionarioCartoes || {};
+  let dicionarioDiversos = dados.dicionarioDiversos || {};
+  let dicionarioCofrinho = dados.dicionarioCofrinho || {};
+  let dicionarioAcoes = dados.dicionarioAcoes || {};
+  let dicionarioProventosAcoes = dados.dicionarioProventosAcoes || {};
+  let dicionarioMoedas = dados.dicionarioMoedas || {};
+  let dicionarioCaixas = dados.dicionarioCaixas || {};
+
+  let dataHoje = new Date();
+
+  let dicionarioValoresMensaisCartoes = calcularValoresMensais(
+    dicionarioReceitas,
+    dicionarioCartoes,
+    dicionarioDiversos,
+    dicionarioCofrinho,
+    dicionarioAcoes,
+    dicionarioProventosAcoes,
+    dicionarioMoedas,
+    dataHoje
+  );
+
+  dicionarioValoresMensaisCartoes = atualizarDicionarioBoletimCaixaLeve(dicionarioValoresMensaisCartoes, dicionarioCaixas);
+
+  let contadorBoletim = 1;
+  let mesDataAtual = dataHoje.getMonth();
+  let anoDataAtual = dataHoje.getFullYear();
+  const boletins = document.querySelectorAll(".boletim");
+
+  boletins.forEach((boletim) => {
+
+    while (boletim.firstChild) {
+        boletim.removeChild(boletim.firstChild);
+    }
+
+    let nomeDoMes = nomeMes(mesDataAtual, anoDataAtual);
+
+    let h1 = document.createElement("h1");
+    h1.textContent = nomeDoMes;
+
+    let h3Eentradas = document.createElement("h3");
+    h3Eentradas.textContent = 'Entradas: ';
+    let labelEntradas = document.createElement('label');
+    labelEntradas.id = `boletim-Entradas-${contadorBoletim}`;
+
+    let h3Saidas = document.createElement("h3");
+    h3Saidas.textContent = 'Saidas: ';
+    let labelSaidas = document.createElement('label');
+    labelSaidas.id = `boletim-Saidas-${contadorBoletim}`;
+
+    let h3Saldo = document.createElement("h3");
+    h3Saldo.textContent = 'Saldo: ';
+    let labelSaldo = document.createElement('label');
+    labelSaldo.id = `boletim-Saldo-${contadorBoletim}`;
+
+    boletim.appendChild(h1);
+    boletim.appendChild(h3Eentradas);
+    h3Eentradas.appendChild(labelEntradas);
+    boletim.appendChild(h3Saidas);
+    h3Saidas.appendChild(labelSaidas);
+    boletim.appendChild(h3Saldo);
+    h3Saldo.appendChild(labelSaldo);
+
+    let table = document.createElement("table");
+
+    let thead = document.createElement("thead");
+    let trHead = document.createElement("tr");
+
+    ["Descrição", "Valor", "Dia", "Saldo"].forEach(text => {
+        let th = document.createElement("th");
+        th.textContent = text;
+        trHead.appendChild(th);
+    });
+
+    thead.appendChild(trHead);
+    table.appendChild(thead);
+
+    let tbody = document.createElement("tbody");
+    tbody.id = `boletim-${contadorBoletim}`;
+    table.appendChild(tbody);
+
+    boletim.appendChild(table);
+
+    if (contadorBoletim < 13){
+      adicionarLinhasTabelaBoletim(
+        dicionarioValoresMensaisCartoes[contadorBoletim],
+        `boletim-${contadorBoletim}`,
+        contadorBoletim
+      );
+    }
+
+    mesDataAtual++;
+    contadorBoletim++;
+  });
+  barraFiltroBoletins.forcarAtualizacao();
+}
+
+function atualizarDicionarioBoletimCaixaLeve(dicionarios, dicionarioCaixas){
+    let contador = 0; contadorMesRepeticao = 0;
+    Object.values(dicionarios).forEach((dado) => {
+        if (contador === 0) {
+            dado = criarBaseBoletimCaixa(dado, true, dicionarioCaixas);
+        } else {
+            dado = criarBaseBoletimCaixa(dado, false, dicionarioCaixas);
+            linhasRepetir.forEach(item => {
+                var itemModificado = { ...item };
+                
+                itemModificado.dia = obterDiaUtil(itemModificado.data, itemModificado.dia, contadorMesRepeticao);
+
+                dado[proximaChave(dado)] = itemModificado;
+            });
+            contadorMesRepeticao++;
+        }
+        contador++;
+    })
+    return dicionarios;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 async function BaixarDadosAcoes(){
     function formatarDataExcel(data) {
         if (!data) return '';
@@ -9,14 +424,18 @@ async function BaixarDadosAcoes(){
     dicionarioAcoes = criarDicionarioAcao();
 
 
-    var DadosAcoes = [['Cod. Ação', 'Empresa', 'Valor Cota']]
+    var DadosAcoes = [['Cod. Ação', 'Empresa', 'Valor Cota', 'Valor Aplicado']]
     var dadosMovimentacoes = [['Cod. Ação', 'Movimentação', 'Valor', 'Data', 'Qtde']]
+    let contador = 2;
     Object.values(dicionarioAcoes).forEach(dados => {
         DadosAcoes.push([
             dados.codigo,
             dados.nomeEmpresa,
-            dados.valorCota
+            dados.valorCota,
+            `=SOMASE(A:A;G${contador};C:C)`,
         ])
+
+        contador++;
 
         Object.values(dados.movimentacoes).forEach(movimentacoes => {
             dadosMovimentacoes.push([
@@ -1214,10 +1633,12 @@ function atualizarDicionarioBoletimCaixa(dicionarios){
 }
 
 
+
+
 var dicionarioCronogramaCaixas = {};
 var linhasRepetir = []; let contadorMesRepeticao = 0;
 
-function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
+function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false, dadosCaixas = CriarDicionarioCaixas()) {
     var baseDescricao = {
         'Total provento': 'provento',
         'Total venda':'entrada',
@@ -1228,7 +1649,7 @@ function criarBaseBoletimCaixa(dicionario = {}, ehPrimeiro = false) {
 
     dicionarioCronogramaCaixas = {};
 
-    var dicionarioCaixas = CriarDicionarioCaixas();
+    var dicionarioCaixas = dadosCaixas;
 
     let contador = 0; let contadorCaixas = 0;
 
@@ -5876,32 +6297,6 @@ function copiarEabrirGraficos() {
     novaJanela.document.close(); // Necessário para garantir que o documento seja carregado
 }
 
-function copiarEabrir() {
-    // Seleciona o conteúdo da div com a classe 'tabelaBoletim'
-    const tabelaBoletim = document.querySelector('.tabelaBoletim').outerHTML;
-
-    // Cria um novo documento HTML
-    const novaJanela = window.open('', '_blank');
-    const html = `
-        <!DOCTYPE html>
-        <html lang="pt-BR">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Boletins Mensais</title>
-            <link rel="stylesheet" href="styles.css">
-        </head>
-        <body>
-            ${tabelaBoletim}
-        </body>
-        </html>
-    `;
-
-    // Escreve o conteúdo HTML na nova janela
-    novaJanela.document.write(html);
-    novaJanela.document.close(); // Necessário para garantir que o documento seja carregado
-}
-
 function copiarEabrirCofrinho() {
     const tabelaCofrinho = document.querySelector('#cofrinho-rendimento').outerHTML;
     var ano = document.getElementById('cofrinhoAteAnos').value;
@@ -6178,7 +6573,8 @@ function salvarProgresso(dadosObjeto) {
 }
 
 async function carregarProgressoSalvo() {
-    mostrarIconer('carregando');
+    carregou = true;
+    mostrarIconer("Icone0");
   carregou = false;
 
   try {
@@ -6196,8 +6592,10 @@ async function carregarProgressoSalvo() {
 
     const dicionarios = parseDicionarios(objeto);
     CarregarTudo(dicionarios);
-
     carregou = true;
+    executarAoCarregar();
+
+    
     console.log("Progresso carregado do JSONBin.");
 
     // 🔹 Atualiza cache local (ótima prática)
@@ -6220,17 +6618,25 @@ async function carregarProgressoSalvo() {
     const objeto = JSON.parse(dadosJSON);
     const dicionarios = parseDicionarios(objeto);
     CarregarTudo(dicionarios);
-
     carregou = true;
+    executarAoCarregar();
+
     console.log("Progresso carregado do localStorage.");
 
   } catch (erro) {
     console.error("Erro ao carregar progresso local:", erro);
   }
   
+}
+
+function executarAoCarregar() {
   iniciarOrdenacaoPlanilhas();
   ordenarTodasAsPlanilhas();
+  notificacaoCheckListUnica();
+  mostrarIconer('Icone4');
+  mostrarIconer('Icone4');
 }
+
 
 function parseDicionarios(data) {
     localStorage.setItem('tempoPassadoCorrido', data.tempoDeUso || 0);
@@ -6580,7 +6986,6 @@ function CarregarTudo(dicionarios) {
         ataulizarSaldoCaixas(id);
         id++;
     }
-
     boletimFuncao();
     historicoInvestimentos();
 }
@@ -7258,7 +7663,7 @@ function calcularValoresMensais(dicionarioReceitas, dicionarioCartoes, dicionari
   const anoAtual = hoje.getFullYear();
   let explicacao = '';
 
-  let dadosCofrinhoOrdenado = ordenarMovimentacoesCofrinho();
+  let dadosCofrinhoOrdenado = ordenarMovimentacoesCofrinho(dicionarioCofrinho);
   let totalCofrinho = 0;
   
   let dataParaCalculo = new Date(anoAtual, mesAtual, 10);
@@ -8437,6 +8842,7 @@ function toggleMenu() {
 
 mostrarIconer()
 function mostrarIconer(icone) {
+    if (carregou == false) { return }
     document.querySelectorAll('.paginaPrincipal > div').forEach(function(div) {
         if (div.classList.contains(icone)) {
             div.classList.remove('hidden');
@@ -9015,8 +9421,8 @@ function adicionarLinhasTabelaBoletimAlternativo(dadosMeses, idTbody, id, saldoS
   }
 }
 
-function ordenarMovimentacoesCofrinho() {
-  dicionarioCofrinho = criarDicionarioCofrinho();
+function ordenarMovimentacoesCofrinho(dados) {
+  dicionarioCofrinho = dados;
   let dicionario = {};
   
   let chave = ''; let chave_ = '';
@@ -9053,8 +9459,10 @@ function calcularTotalAplicadoCofrinho(data){
   const hoje = data;
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
+
+  let dicionarioCofrinho = criarDicionarioCofrinho();
   
-  let dadosCofrinhoOrdenado = ordenarMovimentacoesCofrinho();
+  let dadosCofrinhoOrdenado = ordenarMovimentacoesCofrinho(dicionarioCofrinho);
   
   let totalCofrinho = 0;
   let dataParaCalculo = new Date(anoAtual, mesAtual, 15);
