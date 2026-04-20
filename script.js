@@ -100,42 +100,13 @@ function criarToast(conteudo) {
 
 
 function restaurarEstadoAnterior() {
+  let statusJsBin = jsonbinAtivo;
 
   carregou = false;
-
-  const dadosJSON = localStorage.getItem('progressoSalvo');
-
-  if (!dadosJSON) {
-    console.warn("Nenhum progresso salvo encontrado");
-    return;
-  }
-
-  try {
-    const objeto = JSON.parse(dadosJSON);
-
-    const dicionarios = parseDicionarios(objeto);
-
-    // 🔥 limpa a tela antes (importante)
-    document.body.innerHTML = document.body.innerHTML;
-
-    // 🔥 recria tudo
-    CarregarTudo(dicionarios);
-
-    carregou = true;
-
-    console.log("Estado restaurado com sucesso");
-
-    // 🔥 reordenar e ajustar
-    iniciarOrdenacaoPlanilhas();
-    ordenarTodasAsPlanilhas();
-    mostrarIconer('Icone4');
-
-    // 🔥 MUITO IMPORTANTE: sincroniza com espelho
-    salvarProgressoLeve();
-
-  } catch (erro) {
-    console.error("Erro ao restaurar estado:", erro);
-  }
+  jsonbinAtivo = false;
+  carregarProgressoSalvo();
+  jsonbinAtivo = statusJsBin;
+  
 }
 
 
@@ -4382,48 +4353,69 @@ function organizarMovimentacoesAcoes(movimentacoes){
   let listaMovimentacaoCompra = [];
   let listaMovimentacaoVenda = [];
 
-    for (var [_, dados] of Object.entries(movimentacoes)){
-        if (dados.movimentacao === 'compra'){
-            listaMovimentacaoCompra.push(dados);
-        } else if (dados.movimentacao === 'venda'){
-            listaMovimentacaoVenda.push(dados);
-        }
+  for (let [_, dados] of Object.entries(movimentacoes)){
+    if (dados.movimentacao === 'compra'){
+      listaMovimentacaoCompra.push({...dados});
+    } else if (dados.movimentacao === 'venda'){
+      listaMovimentacaoVenda.push({...dados});
+    }
+  }
+
+  // 🔥 Pega a maior data entre todas movimentações
+  let todasDatas = [
+    ...listaMovimentacaoCompra.map(x => new Date(x.data)),
+    ...listaMovimentacaoVenda.map(x => new Date(x.data))
+  ];
+
+  let dataMax = new Date(Math.max(...todasDatas));
+
+  // Sentinela agora usa a maior data (não "hoje")
+  listaMovimentacaoCompra.push({
+    data: dataMax.toISOString().split("T")[0],
+    Qtde: 0,
+    valor: 0,
+    valorTotal: 0
+  });
+
+  // Ordenar
+  listaMovimentacaoCompra.sort((a, b) => new Date(a.data) - new Date(b.data));
+  listaMovimentacaoVenda.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+  let dataAntiga = new Date('1900-01-01');
+  let qtdeAtual = 0;
+
+  for (let c = 0; c < listaMovimentacaoCompra.length; c++){
+    let dataAtual = new Date(listaMovimentacaoCompra[c].data);
+
+    qtdeAtual += listaMovimentacaoCompra[c].Qtde;
+
+    for (let d = 0; d < listaMovimentacaoVenda.length; d++){
+      let dataVenda = new Date(listaMovimentacaoVenda[d].data);
+
+      if (
+        dataVenda > dataAntiga &&
+        dataVenda <= dataAtual &&
+        listaMovimentacaoVenda[d].Qtde > 0
+      ){
+        qtdeAtual -= listaMovimentacaoVenda[d].Qtde;
+        listaMovimentacaoVenda[d].Qtde = 0;
+      }
     }
 
-    let data = new Date();
-    listaMovimentacaoCompra.push({data: data.toISOString().split("T")[0], Qtde: 0, valor: 0, valorTotal: 0}); // Sentinela para facilitar o loop
+    dataAntiga = dataAtual;
 
-    // Ordenar as listas por data
-    listaMovimentacaoCompra.sort((a, b) => new Date(a.data) - new Date(b.data));
-    listaMovimentacaoVenda.sort((a, b) => new Date(a.data) - new Date(b.data));
+    resultado.push({
+      movimentacao: 'compra',
+      data: listaMovimentacaoCompra[c].data,
+      Qtde: qtdeAtual,
+    });
+  }
 
-    let dataAntiga = new Date('1900-01-01');
-    let qtdeAtual = 0;
-    for (c = 0; c < listaMovimentacaoCompra.length; c++){
-        let dataAtual = new Date(listaMovimentacaoCompra[c].data);
-        qtdeAtual += listaMovimentacaoCompra[c].Qtde;
-
-        for (d = 0; d < listaMovimentacaoVenda.length; d++){
-            let dataVenda = new Date(listaMovimentacaoVenda[d].data);
-            let qtdeVenda = listaMovimentacaoVenda[d].Qtde;
-
-            if (dataVenda > dataAntiga && dataVenda <= dataAtual && qtdeVenda > 0){
-                qtdeAtual -= qtdeVenda;
-                listaMovimentacaoVenda[d].Qtde = 0; // Marca como processado
-            }
-        }
-        dataAntiga = dataAtual;
-        resultado.push({
-            movimentacao: 'compra',
-            data: listaMovimentacaoCompra[c].data,
-            Qtde: qtdeAtual,
-        });
-    }
-
-return resultado
+  return resultado;
 }
 
 function calcularQtdeAcoesData(data, movimentadoes){
+  
   let qtdeTotal = 0;
   let ultimaData = new Date('1900-01-01');
   for (var [_, dados] of Object.entries(movimentadoes)){
@@ -6389,6 +6381,7 @@ function salvarDicionario() {
   notificacaoSalvamento(); // Opcional: sua função de feedback visual
   salvarProgresso(dados); // Chama a função para salvar o progresso
 
+  if (jsonbinAtivo){
     // ✅ Salvar também no JSONBin
     fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
     method: "PUT",
@@ -6405,6 +6398,7 @@ function salvarDicionario() {
     .catch(err => {
     console.error("Erro ao salvar no JSONBin:", err);
     });
+  }
 }
 
 
@@ -6507,15 +6501,17 @@ function selecionarElerTXT() {
 
         // ✅ Envia para JSONBin
         try {
-          await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
-            },
-            body: JSON.stringify(objeto)
-          });
-
+            if (jsonbinAtivo) {
+                await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
+                    method: "PUT",
+                    headers: {
+                    "Content-Type": "application/json",
+                    "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+                    },
+                    body: JSON.stringify(objeto)
+                });
+            }
+          
           console.log("Arquivo enviado para JSONBin.");
 
         } catch (erroCloud) {
@@ -6578,12 +6574,15 @@ async function carregarProgressoSalvo() {
   carregou = false;
 
   try {
-    // 🔹 Tenta carregar do JSONBin primeiro
-    const res = await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest", {
-      headers: {
-        "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
-      }
-    });
+    if (jsonbinAtivo) {
+        // 🔹 Tenta carregar do JSONBin primeiro
+        const res = await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest", {
+            headers: {
+                "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+            }
+        });
+    }
+    
 
     if (!res.ok) throw new Error("Falha no JSONBin");
 
@@ -9477,3 +9476,5 @@ function calcularTotalAplicadoCofrinho(data){
   }
   return totalCofrinho;
 }
+
+var jsonbinAtivo = true;
