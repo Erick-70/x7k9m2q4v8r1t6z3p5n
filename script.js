@@ -6569,6 +6569,7 @@ function salvarProgresso(dadosObjeto) {
 }
 
 async function carregarProgressoSalvo() {
+	jsonbinAtivo = true;
     carregou = true;
     mostrarIconer("Icone0");
   carregou = false;
