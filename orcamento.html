@@ -495,9 +495,6 @@
                 </g>
                 </svg>
             </button>
-            <button onclick="restaurarEstadoAnterior()" class="icon" title="Retomar Tudo">
-                <img src="./icones/retorna.png" alt="Retomar Tudo">
-            </button>
             <button id= "logoutButton" class="icon" title="Sair">
                 <img src="./icones/entra.png" alt="Entrada">
             </button>
@@ -940,13 +937,6 @@
                 </div>
             </div>
             <div class="paginaPrincipal" id="paginaPrincipal">
-                <div class="carregando div-pagina Icone0" id="telaCarregando">
-                    <div class="loader-box">
-                        <div class="spinner"></div>
-                        <p id="textoCarregando">Carregando dados...</p>
-                    </div>
-                </div>
-
                 <!-- Aqui é o Icone 1 -->
                <div class="Icone1">
                     <h1 style="margin: 0; padding: 0;">Cartões <button onclick="addCartao()" class="remover-linha">Adicionar Cartão</button></h1>
@@ -1044,8 +1034,8 @@
                 </div>
                 <!-- Aqui é o Icone 4 -->
                 <div class="Icone4">
-                    <h1 style="margin: 0; padding: 0;">Boletins Mensais <button onclick="abrirTabela()" class="remover-linha _PC">Abrir em Nova Aba</button></h1>
-                    <p class="p-saldo-mes-passado">Saldo do Mês Passado: <input id="saldoMesPassado" class="valor-input" value="R$ 0,00" data-valor="0.00" onblur="atualizarSaldoDoMesPassado(this)"></p>
+                    <h1 style="margin: 0; padding: 0;">Boletins Mensais <button onclick="copiarEabrir()" class="remover-linha _PC">Emitir PDF</button></h1>
+                    <p class="">Saldo do Mês Passado: <input id="saldoMesPassado" class="valor-input" value="R$ 0,00" data-valor="0.00" onblur="atualizarSaldoDoMesPassado(this)"></p>
                   <div id="filtrosBoletins"></div>
                     <div class="tabelaBoletim">
                         <div class="boletim" id="boletim1"></div>
@@ -1187,8 +1177,7 @@
                 <div class="Icone8">
                     <h1 style="margin: 0; padding: 0;">Investimentos
                         <button onclick="addAcao()" class="remover-linha">Adiciona Ação</button>
-                        <button onclick="BaixarDadosAcoes()" class="remover-linha">Baixar Dados</button>
-                        <!--<button onclick="" class="remover-linha">Importar Dados</button>-->
+                        <button onclick="atualizarValorAcoes()" class="remover-linha">Atualizar o valor das Ações</button>
                         <button id="botao-ocultar-todas-tabelas-acoes" onclick="OcultaroOuMostrarTodasTabelasAcoes()" class="remover-linha">Ocultar todas as tabelas</button>
                     </h1>
                     <h3>Total Aplicado: <label id="acoes-total-aplicado" data-valor="0.00">R$ 0,00</label></h3>
@@ -1237,11 +1226,7 @@
                   <div style="margin: 5px; padding: 0;"></div>
                   <div> <h1 style="margin: 0; padding: 0;" id="div-Grupos-Investimento">Grupos</h1>
                       <div id="grupos-investimentos">
-                        <h3><button onclick="addGrupoinvestimento()" class="remover-linha">Adicionar Grupo</button>
-                            <button onclick="addGrupoinvestimentoComTodos()" class="remover-linha">Adicionar Grupo com Todos</button>
-                            <button onclick="atualizarDadosGrupos()" class="remover-linha">Atualizar Grupos</button>
-                        </h3>
-                        <div id="grupos-investimentos-colunas-selecao"></div>
+                        <h3><button onclick="addGrupoinvestimento()" class="remover-linha">Adicionar Grupo</button> <button onclick="addGrupoinvestimentoComTodos()" class="remover-linha">Adicionar Grupo com Todos</button></h3>
                       <div id="grupos-investimento-container"></div>
                     </div>
                   </div>
@@ -1258,10 +1243,7 @@
                           </h3>
                         <h3><button onclick="addLinhaDistribuicaoPonderada()" class="remover-linha">Adicionar ação</button></h3>
                         <h3><button onclick="addgrupoLinhaDistribuicaoPonderada()" class="remover-linha">Adiconar Grupo:</button> <select name="Grupo" id="Distribuicao-Grupos" class="descricao-input"></select></h3>
-                        <h3><button onclick="limparDistribuicaoPonderada()" class="remover-linha">Limpar</button>
-                            <button onclick="addLinhasAcoesDistribuicaoPonderada()" class="remover-linha">Lançar os Itens</button>
-                            <button onclick="removerLinhasAcoesDistribuicaoPonderada()" class="remover-linha">Excluir os Itens Lançados</button>
-                        </h3>                        
+                        <h3><button onclick="limparDistribuicaoPonderada()" class="remover-linha">Limpar</button></h3>                        
                         <table>
                               <thead>
                                   <tr>
