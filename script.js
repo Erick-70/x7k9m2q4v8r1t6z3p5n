@@ -1980,8 +1980,7 @@ function validarDataExcel(valor) {
   if (typeof valor === "number") {
     const d = XLSX.SSF.parse_date_code(valor)
     if (!d) return null
-
-    return new Date(Date.UTC(d.y, d.m - 1, d.d))
+    return new Date(d.y, d.m - 1, d.d)
   }
 
   if (typeof valor === "string") {
@@ -1992,7 +1991,12 @@ function validarDataExcel(valor) {
     const mes = parseInt(partes[1], 10) - 1
     const ano = parseInt(partes[2], 10)
 
-    const data = new Date(Date.UTC(ano, mes, dia))
+    const data = new Date(ano, mes, dia)
+    if (
+      data.getFullYear() !== ano ||
+      data.getMonth() !== mes ||
+      data.getDate() !== dia
+    ) return null
 
     return data
   }
