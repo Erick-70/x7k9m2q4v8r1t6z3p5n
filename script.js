@@ -6741,7 +6741,6 @@ function salvarDicionario() {
   notificacaoSalvamento(); // Opcional: sua função de feedback visual
   salvarProgresso(dados); // Chama a função para salvar o progresso
 
-  /*
     // ✅ Salvar também no JSONBin
     fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
     method: "PUT",
@@ -6758,7 +6757,7 @@ function salvarDicionario() {
     .catch(err => {
     console.error("Erro ao salvar no JSONBin:", err);
     });
-    */
+
 }
 
 
@@ -6861,7 +6860,7 @@ function selecionarElerTXT() {
 
         // ✅ Envia para JSONBin
         try {
-            /*
+            
                 await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
                     method: "PUT",
                     headers: {
@@ -6870,7 +6869,7 @@ function selecionarElerTXT() {
                     },
                     body: JSON.stringify(objeto)
                 });
-                */
+                
           
           console.log("Arquivo enviado para JSONBin.");
 
@@ -6934,14 +6933,14 @@ async function carregarProgressoSalvo() {
   carregou = false;
 
   try {
-    /*
+    
         // 🔹 Tenta carregar do JSONBin primeiro
         const res = await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest", {
             headers: {
                 "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
             }
         });
-        */
+        
     
 
     if (!res.ok) throw new Error("Falha no JSONBin");
