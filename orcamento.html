@@ -304,6 +304,10 @@
                 </g>
                 </svg>
             </button>
+            <button onclick="dreFuncao()" class="icon" title="DRE - Demonstração de Resultados"> 
+                <img src="./icones/dre.png" alt="Gráficos Mensais">
+            </button>
+
             <button onclick="graficoFuncao()" class="icon" title="Gráficos Mensais">
                 <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
                 width="512.000000pt" height="512.000000pt" viewBox="0 0 512.000000 512.000000"
@@ -498,7 +502,7 @@
             <button onclick="restaurarEstadoAnterior()" class="icon" title="Retomar Tudo">
                 <img src="./icones/retorna.png" alt="Retomar Tudo">
             </button>
-            <button id= "logoutButton" class="icon" title="Sair">
+            <button id= "logoutButton" class="icon" title="Carregar">
                 <img src="./icones/entra.png" alt="Entrada">
             </button>
             <!-- ... -->
@@ -1416,15 +1420,20 @@
                 <div class="Icone11">
                     <h1 style="margin: 0; padding: 0;" class="">Boletim, Grafico e Cronograma</h1>
                     <div id="boletimgraficoContainer"></div>
-                    </div>
+                </div>
 
-                    <div class="Icone12">
-                        <h1 style="margin: 0; padding: 0;" class="">Caixas</h1>
-                        <button onclick="addCaixa()" class="remover-linha">Adicionar Caixa</button>
-                        <h3></h3>
-                        <div id="caixas-container"></div>
+                <div class="Icone12">
+                    <h1 style="margin: 0; padding: 0;" class="">Caixas</h1>
+                    <button onclick="addCaixa()" class="remover-linha">Adicionar Caixa</button>
+                    <h3></h3>
+                    <div id="caixas-container"></div>
 
-                    </div>
+                </div>
+
+                <div class="Icone13">
+                    <h1 style="margin: 0; padding: 0;" class="">DRE - Demonstração de Resultados</h1>
+                    <div id="dre-container"></div>
+                </div>
             </div>
             <div class="resizer top-resizer"></div>
         </div>
