@@ -1,3 +1,367 @@
+function dreFuncao() {
+
+    mostrarIconer('Icone13');
+
+    let data = new Date();
+
+    let saldoInicialGlobal = Number(
+        document.getElementById('saldoMesPassado').getAttribute('data-valor')
+    );
+
+    let dicionarios = calcularValoresMensais(
+        atualizarDadosReceitas(),
+        atualizarDadosCartoes(),
+        atualizarDadosDiversos(),
+        criarDicionarioCofrinho(),
+        criarDicionarioAcao(),
+        criarDicionarioProventosAcoes(),
+        criarDicionarioMoedas(),
+        data
+    );
+
+    console.log(dicionarios);
+
+    let dadosMes = [];
+
+    let saldoAcumulado = saldoInicialGlobal;
+
+    // ===========================
+    // MONTA OS 12 MESES
+    // ===========================
+
+    for (let i = 0; i < 12; i++) {
+
+        let movs = dicionarios[i + 1] || [];
+
+        let receita = 0;
+        let cartoes = 0;
+        let dividas = 0;
+
+        let proventos = 0;
+
+        let acoesEntradas = 0;
+        let acoesSaidas = 0;
+
+        let moedasEntradas = 0;
+        let moedasSaidas = 0;
+
+        let cofrinhoEntradas = 0;
+        let cofrinhoSaidas = 0;
+
+        for (let k in movs) {
+
+            let m = movs[k];
+            let v = Number(m.valor);
+
+            switch (m.tipo) {
+
+                case "boletim-mensal-receita":
+                    receita += v;
+                    break;
+
+                case "boletim-mensal-cartao":
+                    cartoes += Math.abs(v);
+                    break;
+
+                case "boletim-mensal-dividas-diversas":
+                    dividas += Math.abs(v);
+                    break;
+
+                case "boletim-mensal-investimento":
+
+                    if (m.descricao.includes("Provento")) {
+                        proventos += v;
+                    } else if (v > 0) {
+                        acoesEntradas += v;
+                    } else {
+                        acoesSaidas += Math.abs(v);
+                    }
+
+                    break;
+
+                case "boletim-mensal-cambio":
+
+                    v > 0
+                        ? moedasEntradas += v
+                        : moedasSaidas += Math.abs(v);
+
+                    break;
+
+                case "boletim-mensal-cofrinho":
+
+                    v > 0
+                        ? cofrinhoEntradas += v
+                        : cofrinhoSaidas += Math.abs(v);
+
+                    break;
+            }
+        }
+
+
+        // ===========================
+        // DRE
+        // ===========================
+
+        let despesasTotal = cartoes + dividas;
+
+        let sobraOperacional = receita - despesasTotal;
+
+        let receitasFinanceiras = proventos;
+
+        let investimentos =
+            acoesSaidas +
+            moedasSaidas +
+            cofrinhoSaidas;
+
+        let resgates =
+            acoesEntradas +
+            moedasEntradas +
+            cofrinhoEntradas;
+
+        let resultadoLiquido =
+            sobraOperacional +
+            receitasFinanceiras -
+            investimentos +
+            resgates;
+
+        // ===========================
+        // SALDO
+        // ===========================
+
+        let saldoInicial = saldoAcumulado;
+        saldoAcumulado += resultadoLiquido;
+        let saldoFinal = saldoAcumulado;
+
+        dadosMes.push({
+            saldoInicial,
+
+            receitas: {
+                total: receita,
+                valor: receita
+            },
+
+            despesas: {
+                total: despesasTotal,
+                cartoes,
+                dividas
+            },
+
+            sobraOperacional,
+
+            financeiras: {
+                total: receitasFinanceiras,
+                proventos
+            },
+
+            investimentos: {
+                total: investimentos,
+                cartoes: acoesSaidas,
+                moedas: moedasSaidas,
+                cofrinho: cofrinhoSaidas
+            },
+
+            resgates: {
+                total: resgates,
+                cartoes: acoesEntradas,
+                moedas: moedasEntradas,
+                cofrinho: cofrinhoEntradas
+            },
+
+            resultadoLiquido,
+            saldoFinal
+        });
+    }
+
+    // ===========================
+    // RENDER DIRETO AQUI
+    // ===========================
+
+    const nomesMeses = [
+        "Janeiro", "Fevereiro", "Março",
+        "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro",
+        "Outubro", "Novembro", "Dezembro"
+    ];
+
+    const mesAtual = new Date().getMonth();
+
+    const divDRE = document.getElementById("dre-container");
+    divDRE.innerHTML = "";
+
+    for (let t = 0; t < 4; t++) {
+
+        let inicio = t * 3;
+
+        divDRE.innerHTML += `
+            <div class="dre-trimestre">
+                <h1 style="margin: 0; padding: 0; text-align: center">Trimestre ${t + 1}</h1>
+                ${criarHTMLFluxoCaixa(
+                    dadosMes[inicio],
+                    dadosMes[inicio + 1],
+                    dadosMes[inicio + 2],
+                    [
+                        nomesMeses[(mesAtual + inicio) % 12],
+                        nomesMeses[(mesAtual + inicio + 1) % 12],
+                        nomesMeses[(mesAtual + inicio + 2) % 12]
+                    ]
+                )}
+            </div>
+        `;
+    }
+}
+
+function criarHTMLFluxoCaixa(m1, m2, m3, nomesMeses) {
+
+    const meses = [m1, m2, m3];
+
+    function moeda(v) {
+        return (v || 0).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+    }
+
+    function perc(v, r) {
+        if (!r) return "0,0%";
+        return ((v / r) * 100).toFixed(3).replace(".", ",") + "%";
+    }
+
+    function linha(nome, getValor, classe = "") {
+
+        let html = `<tr class="${classe}"><td>${nome}</td>`;
+
+        meses.forEach(m => {
+
+            let v = getValor(m);
+
+            html += `
+                <td>${moeda(v)}</td>
+                <td>${perc(v, m.receitas.valor)}</td>
+            `;
+        });
+
+        html += `</tr>`;
+        return html;
+    }
+
+    function tituloGrupo(nome, classe, getValor) {
+
+        let html = `<tr class="linha-titulo ${classe}"><td>${nome}</td>`;
+
+        meses.forEach(m => {
+
+            let v = getValor(m);
+
+            html += `
+                <td>${moeda(v)}</td>
+                <td>${perc(v, m.receitas.valor)}</td>
+            `;
+        });
+
+        html += `</tr>`;
+        return html;
+    }
+
+    return `
+<table class="fluxo-caixa">
+
+<thead>
+<tr>
+<th rowspan="2">Descrição</th>
+
+<th colspan="2">${nomesMeses[0]}</th>
+<th colspan="2">${nomesMeses[1]}</th>
+<th colspan="2">${nomesMeses[2]}</th>
+</tr>
+
+<tr>
+<th>R$</th><th>%</th>
+<th>R$</th><th>%</th>
+<th>R$</th><th>%</th>
+</tr>
+</thead>
+
+<tbody>
+${tituloGrupo("(+) RECEITAS", "grupo-receita", m => m.receitas.total)}
+${linha("Receitas", m => m.receitas.total, "linha-positiva")}
+
+<tr><td colspan="7"></td></tr>
+
+${tituloGrupo("(-) DESPESAS", "grupo-despesa", m => m.despesas.total)}
+${linha("Cartões", m => m.despesas.cartoes, "linha-negativa")}
+${linha("Dívidas Diversas", m => m.despesas.dividas, "linha-negativa")}
+
+<tr><td colspan="7"></td></tr>
+
+${tituloGrupo("(=) SOBRA OPERACIONAL", "grupo-resultado", m => m.sobraOperacional)}
+
+<tr><td colspan="7"></td></tr>
+
+${tituloGrupo("(+) RECEITAS FINANCEIRAS", "grupo-receita", m => m.financeiras.proventos)}
+${linha("Proventos / Dividendos", m => m.financeiras.proventos, "linha-positiva")}
+
+<tr><td colspan="7"></td></tr>
+
+${tituloGrupo("(-) INVESTIMENTOS", "grupo-despesa", m => m.investimentos.total)}
+${linha("Compra de Ações", m => m.investimentos.cartoes, "linha-negativa")}
+${linha("Compra de Moedas", m => m.investimentos.moedas, "linha-negativa")}
+${linha("Aplicação do Cofrinho", m => m.investimentos.cofrinho, "linha-negativa")}
+
+<tr><td colspan="7"></td></tr>
+
+${tituloGrupo("(+) RESGATE DE INVESTIMENTOS", "grupo-receita", m => m.resgates.total)}
+${linha("Venda de Ações", m => m.resgates.cartoes, "linha-positiva")}
+${linha("Venda de Moedas", m => m.resgates.moedas, "linha-positiva")}
+${linha("Resgate do Cofrinho", m => m.resgates.cofrinho, "linha-positiva")}
+
+<tr><td colspan="7"></td></tr>
+
+${tituloGrupo("(=) RESULTADO LÍQUIDO", "grupo-resultado", m => m.resultadoLiquido)}
+
+</tbody>
+
+</table>
+<p></p>
+`;
+}
+
+function formatar(valor) {
+    return valor.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+}
+
+/*
+(+) RECEITAS
+    Receitas (+)
+
+(-) DESPESAS
+	Cartões (-)
+    Dividas Diversas (-)
+
+(=) SOBRA OPERACIONAL
+
+(+) RECEITAS FINANCEIRAS
+    Proventos / Dividendos (+)
+
+(-) INVESTIMENTOS
+	Compra Ações (-)
+    Compra Moedas (-)
+	Saida para Caixas (-)
+
+(+) RESGATE DE INVESTIMENTOS
+    Venda Ações (+)
+    Venda Moedas (+)
+	Entrada dos Cofrinho (+)
+
+(=) RESULTADO LÍQUIDO
+*/
+
+
+
+
+
 function pegarDadosCheckList() {
     let data = new Date();
     let diaHoje = data.getDate();
@@ -6377,6 +6741,7 @@ function salvarDicionario() {
   notificacaoSalvamento(); // Opcional: sua função de feedback visual
   salvarProgresso(dados); // Chama a função para salvar o progresso
 
+  /*
     // ✅ Salvar também no JSONBin
     fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
     method: "PUT",
@@ -6393,6 +6758,7 @@ function salvarDicionario() {
     .catch(err => {
     console.error("Erro ao salvar no JSONBin:", err);
     });
+    */
 }
 
 
@@ -6495,6 +6861,7 @@ function selecionarElerTXT() {
 
         // ✅ Envia para JSONBin
         try {
+            /*
                 await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
                     method: "PUT",
                     headers: {
@@ -6503,6 +6870,7 @@ function selecionarElerTXT() {
                     },
                     body: JSON.stringify(objeto)
                 });
+                */
           
           console.log("Arquivo enviado para JSONBin.");
 
@@ -6566,12 +6934,14 @@ async function carregarProgressoSalvo() {
   carregou = false;
 
   try {
+    /*
         // 🔹 Tenta carregar do JSONBin primeiro
         const res = await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest", {
             headers: {
                 "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
             }
         });
+        */
     
 
     if (!res.ok) throw new Error("Falha no JSONBin");
