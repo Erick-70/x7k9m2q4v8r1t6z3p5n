@@ -1,3 +1,73 @@
+.fluxo-caixa {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    font-size: 17px;
+}
+
+/* cabeçalho */
+.fluxo-caixa thead th {
+    background: #f2f2f2;
+    padding: 8px;
+    font-weight: bold;
+}
+
+/* células */
+.fluxo-caixa td {
+    padding: 6px;
+    border-bottom: 1px solid #eee;
+}
+
+/* =========================
+   TÍTULOS GRANDES
+========================= */
+.linha-titulo td {
+    font-size: 22px;
+    font-weight: 700;
+    background: rgba(211, 237, 249, 0.5);
+    text-transform: uppercase;
+    padding: 10px;
+}
+
+/* =========================
+   POSITIVO (VERDE)
+========================= */
+.linha-positiva td {
+    background: rgba(211, 249, 216, 0.5);
+    font-weight: 500;
+}
+
+/* =========================
+   NEGATIVO (VERMELHO)
+========================= */
+.linha-negativa td {
+    background: rgba(255, 204, 204, 0.5);
+    font-weight: 500;
+}
+
+/* =========================
+   RESULTADOS (AZUL CLARO)
+========================= */
+.linha-resultado td {
+    background: rgba(211, 237, 249, 0.5);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* SALDO FINAL destaque maior ainda */
+.linha-final td {
+    background: rgba(180, 220, 255, 0.6);
+    font-weight: 800;
+    font-size: 15px;
+}
+
+/* hover opcional */
+.fluxo-caixa tr:hover td {
+    filter: brightness(0.98);
+}
+
+
+
 .carregando {
     display: flex;
     justify-content: center;
