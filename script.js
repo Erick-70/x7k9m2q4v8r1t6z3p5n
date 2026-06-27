@@ -1,5 +1,55 @@
+function detalharDRE() {
+    let tabela = document.getElementById('dre-container');
+    let linhas = tabela.getElementsByClassName('linha-detalhes');
+    let btn = document.getElementById('btn-detalhar-dre');
+
+    statusDetalhesDRE = !statusDetalhesDRE;
+
+    for (let i = 0; i < linhas.length; i++) {
+        linhas[i].style.display = statusDetalhesDRE ? '' : 'none';
+    }
+
+    btn.textContent = statusDetalhesDRE
+        ? 'Ocultar detalhes'
+        : 'Mostrar detalhes';
+}
+
+function pegarSaldoCaixas (){
+    chamarCaixas();
+    var caixas = document.getElementsByClassName('caixa-header');
+    var nomesCaixas = document.getElementsByClassName('caixa-nome-input');
+    var tabelas = document.getElementsByClassName('cronograma-caixas');
+    
+    let resultados = [];
+
+    for (var i = 0; i < caixas.length; i++){
+        let n = nomesCaixas[i].value;
+        let tabela = tabelas[i];
+        let linhas = tabela.getElementsByTagName('tr');
+        let saldo = linhas[linhas.length - 1].querySelector('.boletim-mensal-saldo').getAttribute('data-valor');
+        resultados.push([n, saldo]);
+    }
+
+    return resultados;
+}
+
+var statusDetalhesDRE = true;
+
 function dreFuncao() {
 
+    function adicionarMovimentacao(lista, descricao, valor) {
+
+        const item = lista.find(x => x[0] === descricao);
+
+        if (item) {
+            item[1] += valor;
+        } else {
+            lista.push([descricao, valor]);
+        }
+
+    }
+
+    let caixas = pegarSaldoCaixas();
     mostrarIconer('Icone13');
 
     let data = new Date();
@@ -19,8 +69,6 @@ function dreFuncao() {
         data
     );
 
-    console.log(dicionarios);
-
     let dadosMes = [];
 
     let saldoAcumulado = saldoInicialGlobal;
@@ -34,73 +82,99 @@ function dreFuncao() {
         let movs = dicionarios[i + 1] || [];
 
         let receita = 0;
+        let receitaMovimentacao = [];
         let cartoes = 0;
+        let cartoesMovimentacao = [];
         let dividas = 0;
+        let dividasMovimentacao = [];
 
         let proventos = 0;
+        let proventosMovimentacao = [];
 
         let acoesEntradas = 0;
+        let acoesEntradasMovimentacao = [];
         let acoesSaidas = 0;
+        let acoesSaidasMovimentacao = [];
 
         let moedasEntradas = 0;
+        let moedasEntradasMovimentacao = [];
         let moedasSaidas = 0;
+        let moedasSaidasMovimentacao = [];
 
         let cofrinhoEntradas = 0;
+        let cofrinhoEntradasMovimentacao = [];
         let cofrinhoSaidas = 0;
+        let cofrinhoSaidasMovimentacao = [];
 
         for (let k in movs) {
 
             let m = movs[k];
             let v = Number(m.valor);
+            let d = m.descricao;
 
             switch (m.tipo) {
 
                 case "boletim-mensal-receita":
                     receita += v;
+                    adicionarMovimentacao(receitaMovimentacao, d, v);
                     break;
 
                 case "boletim-mensal-cartao":
                     cartoes += Math.abs(v);
+                    adicionarMovimentacao(cartoesMovimentacao, d, Math.abs(v));
                     break;
 
                 case "boletim-mensal-dividas-diversas":
                     dividas += Math.abs(v);
+                    adicionarMovimentacao(dividasMovimentacao, d, Math.abs(v));
                     break;
 
                 case "boletim-mensal-investimento":
 
                     if (m.descricao.includes("Provento")) {
                         proventos += v;
+                        adicionarMovimentacao(proventosMovimentacao, d, v);
+
                     } else if (v > 0) {
                         acoesEntradas += v;
+                        adicionarMovimentacao(acoesEntradasMovimentacao, d, v);
+
                     } else {
                         acoesSaidas += Math.abs(v);
+                        adicionarMovimentacao(acoesSaidasMovimentacao, d, Math.abs(v));
                     }
 
                     break;
 
                 case "boletim-mensal-cambio":
 
-                    v > 0
-                        ? moedasEntradas += v
-                        : moedasSaidas += Math.abs(v);
+                    if (v > 0) {
+                        moedasEntradas += v;
+                        adicionarMovimentacao(moedasEntradasMovimentacao, d, v);
+
+                    } else {
+                        moedasSaidas += Math.abs(v);
+                        adicionarMovimentacao(moedasSaidasMovimentacao, d, Math.abs(v));
+                    }
 
                     break;
 
                 case "boletim-mensal-cofrinho":
 
-                    v > 0
-                        ? cofrinhoEntradas += v
-                        : cofrinhoSaidas += Math.abs(v);
+                    if (v > 0) {
+                        cofrinhoEntradas += v;
+                        adicionarMovimentacao(cofrinhoEntradasMovimentacao, d, v);
+
+                    } else {
+                        cofrinhoSaidas += Math.abs(v);
+                        adicionarMovimentacao(cofrinhoSaidasMovimentacao, d, Math.abs(v));
+                    }
 
                     break;
             }
         }
 
-
-        // ===========================
         // DRE
-        // ===========================
 
         let despesasTotal = cartoes + dividas;
 
@@ -108,25 +182,30 @@ function dreFuncao() {
 
         let receitasFinanceiras = proventos;
 
-        let investimentos =
-            acoesSaidas +
-            moedasSaidas +
-            cofrinhoSaidas;
+        let investimentos = acoesSaidas + moedasSaidas + cofrinhoSaidas;
 
-        let resgates =
-            acoesEntradas +
-            moedasEntradas +
-            cofrinhoEntradas;
+        let resgates = acoesEntradas + moedasEntradas + cofrinhoEntradas;
 
-        let resultadoLiquido =
-            sobraOperacional +
-            receitasFinanceiras -
-            investimentos +
-            resgates;
+        let resultadoLiquido = sobraOperacional + receitasFinanceiras - investimentos + resgates;
 
-        // ===========================
+        let caixasMovimentacao = [];
+
+        let resultadoFinal = resultadoLiquido;
+        let caixaTotal = 0;
+
+        if (i === 0) {
+
+            for (const caixa of caixas) {
+                const valor = Number(caixa[1]);
+                caixaTotal += valor;
+
+                resultadoFinal -= valor;
+                caixasMovimentacao.push([caixa[0], valor]);
+            }
+
+        }
+
         // SALDO
-        // ===========================
 
         let saldoInicial = saldoAcumulado;
         saldoAcumulado += resultadoLiquido;
@@ -137,44 +216,62 @@ function dreFuncao() {
 
             receitas: {
                 total: receita,
-                valor: receita
+                valor: receita,
+                movimentacoes: receitaMovimentacao
             },
 
             despesas: {
                 total: despesasTotal,
                 cartoes,
-                dividas
+                dividas,
+                cartoesMovimentacao,
+                dividasMovimentacao
             },
 
+            // ADICIONE ESTA LINHA
             sobraOperacional,
 
             financeiras: {
                 total: receitasFinanceiras,
-                proventos
+                proventos,
+                movimentacoes: proventosMovimentacao
             },
 
             investimentos: {
                 total: investimentos,
                 cartoes: acoesSaidas,
                 moedas: moedasSaidas,
-                cofrinho: cofrinhoSaidas
+                cofrinho: cofrinhoSaidas,
+
+                cartoesMovimentacao: acoesSaidasMovimentacao,
+                moedasMovimentacao: moedasSaidasMovimentacao,
+                cofrinhoMovimentacao: cofrinhoSaidasMovimentacao
             },
 
             resgates: {
                 total: resgates,
                 cartoes: acoesEntradas,
                 moedas: moedasEntradas,
-                cofrinho: cofrinhoEntradas
+                cofrinho: cofrinhoEntradas,
+
+                cartoesMovimentacao: acoesEntradasMovimentacao,
+                moedasMovimentacao: moedasEntradasMovimentacao,
+                cofrinhoMovimentacao: cofrinhoEntradasMovimentacao
             },
 
             resultadoLiquido,
-            saldoFinal
+            saldoFinal,
+
+            resultadoFinal,
+            caixas: {
+                total: i === 0 ? resultadoFinal : resultadoLiquido,
+                movimentacoes: caixasMovimentacao
+            },
+            caixaTotal
         });
     }
 
-    // ===========================
     // RENDER DIRETO AQUI
-    // ===========================
 
     const nomesMeses = [
         "Janeiro", "Fevereiro", "Março",
@@ -208,6 +305,7 @@ function dreFuncao() {
             </div>
         `;
     }
+    detalharDRE();
 }
 
 function criarHTMLFluxoCaixa(m1, m2, m3, nomesMeses) {
@@ -244,6 +342,42 @@ function criarHTMLFluxoCaixa(m1, m2, m3, nomesMeses) {
         return html;
     }
 
+    function linhasMovimentacoes(getLista, getTotal, classe = "") {
+
+        // Descobre todos os nomes existentes nos 3 meses
+        const nomes = [...new Set(
+            meses.flatMap(m => getLista(m).map(x => x[0]))
+        )];
+
+        let html = "";
+
+        nomes.forEach(nome => {
+
+            // verifica se existe em pelo menos um mês
+            if (!meses.some(m => getLista(m).some(x => x[0] === nome)))
+                return;
+
+            html += `<tr class="${classe}">
+                        <td style="padding-left:25px;">${nome}</td>`;
+
+            meses.forEach(m => {
+
+                const item = getLista(m).find(x => x[0] === nome);
+
+                const valor = item ? Math.abs(item[1]) : 0;
+
+                html += `
+                    <td>${valor ? moeda(valor) : ""}</td>
+                    <td>${valor ? perc(valor, getTotal(m)) : ""}</td>
+                `;
+            });
+
+            html += "</tr>";
+        });
+
+        return html;
+    }
+
     function tituloGrupo(nome, classe, getValor) {
 
         let html = `<tr class="linha-titulo ${classe}"><td>${nome}</td>`;
@@ -267,60 +401,156 @@ function criarHTMLFluxoCaixa(m1, m2, m3, nomesMeses) {
 
 <thead>
 <tr>
-<th rowspan="2">Descrição</th>
+    <th rowspan="2">Descrição</th>
 
-<th colspan="2">${nomesMeses[0]}</th>
-<th colspan="2">${nomesMeses[1]}</th>
-<th colspan="2">${nomesMeses[2]}</th>
+    <th colspan="2">${nomesMeses[0]}</th>
+    <th colspan="2">${nomesMeses[1]}</th>
+    <th colspan="2">${nomesMeses[2]}</th>
 </tr>
 
 <tr>
-<th>R$</th><th>%</th>
-<th>R$</th><th>%</th>
-<th>R$</th><th>%</th>
+    <th>R$</th><th>%</th>
+    <th>R$</th><th>%</th>
+    <th>R$</th><th>%</th>
 </tr>
 </thead>
 
 <tbody>
+
+<!-- ================= RECEITAS ================= -->
+
 ${tituloGrupo("(+) RECEITAS", "grupo-receita", m => m.receitas.total)}
 ${linha("Receitas", m => m.receitas.total, "linha-positiva")}
+${linhasMovimentacoes(
+    m => m.receitas.movimentacoes,
+    m => m.receitas.total,
+    "linha-detalhes"
+)}
 
 <tr><td colspan="7"></td></tr>
+
+<!-- ================= DESPESAS ================= -->
 
 ${tituloGrupo("(-) DESPESAS", "grupo-despesa", m => m.despesas.total)}
+
 ${linha("Cartões", m => m.despesas.cartoes, "linha-negativa")}
+${linhasMovimentacoes(
+    m => m.despesas.cartoesMovimentacao,
+    m => m.despesas.cartoes,
+    "linha-detalhes"
+)}
+<tr><td colspan="7"></td></tr>
+
 ${linha("Dívidas Diversas", m => m.despesas.dividas, "linha-negativa")}
+${linhasMovimentacoes(
+    m => m.despesas.dividasMovimentacao,
+    m => m.despesas.dividas,
+    "linha-detalhes"
+)}
 
 <tr><td colspan="7"></td></tr>
+
+<!-- ================= SOBRA ================= -->
 
 ${tituloGrupo("(=) SOBRA OPERACIONAL", "grupo-resultado", m => m.sobraOperacional)}
 
 <tr><td colspan="7"></td></tr>
 
-${tituloGrupo("(+) RECEITAS FINANCEIRAS", "grupo-receita", m => m.financeiras.proventos)}
+<!-- ================= RECEITAS FINANCEIRAS ================= -->
+
+${tituloGrupo("(+) RECEITAS FINANCEIRAS", "grupo-receita", m => m.financeiras.total)}
+
 ${linha("Proventos / Dividendos", m => m.financeiras.proventos, "linha-positiva")}
+${linhasMovimentacoes(
+    m => m.financeiras.movimentacoes,
+    m => m.financeiras.total,
+    "linha-detalhes"
+)}
 
 <tr><td colspan="7"></td></tr>
+
+<!-- ================= INVESTIMENTOS ================= -->
 
 ${tituloGrupo("(-) INVESTIMENTOS", "grupo-despesa", m => m.investimentos.total)}
+
 ${linha("Compra de Ações", m => m.investimentos.cartoes, "linha-negativa")}
+${linhasMovimentacoes(
+    m => m.investimentos.cartoesMovimentacao,
+    m => m.investimentos.cartoes,
+    "linha-detalhes"
+)}
+<tr><td colspan="7"></td></tr>
+
 ${linha("Compra de Moedas", m => m.investimentos.moedas, "linha-negativa")}
+${linhasMovimentacoes(
+    m => m.investimentos.moedasMovimentacao,
+    m => m.investimentos.moedas,
+    "linha-detalhes"
+)}
+<tr><td colspan="7"></td></tr>
+
 ${linha("Aplicação do Cofrinho", m => m.investimentos.cofrinho, "linha-negativa")}
+${linhasMovimentacoes(
+    m => m.investimentos.cofrinhoMovimentacao,
+    m => m.investimentos.cofrinho,
+    "linha-detalhes"
+)}
 
 <tr><td colspan="7"></td></tr>
+
+<!-- ================= RESGATES ================= -->
 
 ${tituloGrupo("(+) RESGATE DE INVESTIMENTOS", "grupo-receita", m => m.resgates.total)}
+
 ${linha("Venda de Ações", m => m.resgates.cartoes, "linha-positiva")}
+${linhasMovimentacoes(
+    m => m.resgates.cartoesMovimentacao,
+    m => m.resgates.cartoes,
+    "linha-detalhes"
+)}
+<tr><td colspan="7"></td></tr>
+
 ${linha("Venda de Moedas", m => m.resgates.moedas, "linha-positiva")}
+${linhasMovimentacoes(
+    m => m.resgates.moedasMovimentacao,
+    m => m.resgates.moedas,
+    "linha-detalhes"
+)}
+<tr><td colspan="7"></td></tr>
+
 ${linha("Resgate do Cofrinho", m => m.resgates.cofrinho, "linha-positiva")}
+${linhasMovimentacoes(
+    m => m.resgates.cofrinhoMovimentacao,
+    m => m.resgates.cofrinho,
+    "linha-detalhes"
+)}
+<tr><td colspan="7"></td></tr>
 
 <tr><td colspan="7"></td></tr>
 
+<!-- ================= RESULTADO ================= -->
+
 ${tituloGrupo("(=) RESULTADO LÍQUIDO", "grupo-resultado", m => m.resultadoLiquido)}
+
+<tr><td colspan="7"></td></tr>
+
+<!-- ================= CAIXAS ================= -->
+${tituloGrupo("(-) CAIXAS", "", m => m.caixaTotal)}
+
+${linhasMovimentacoes(
+    m => m.caixas.movimentacoes,
+    m => m.caixas.total,
+    "linha-detalhes"
+)}
+
+<tr><td colspan="7"></td></tr>
+
+${tituloGrupo("(=) RESULTADO FINAL", "grupo-resultado", m => m.caixas.total)}
 
 </tbody>
 
 </table>
+
 <p></p>
 `;
 }
@@ -6757,7 +6987,6 @@ function salvarDicionario() {
     .catch(err => {
     console.error("Erro ao salvar no JSONBin:", err);
     });
-
 }
 
 
@@ -6869,8 +7098,7 @@ function selecionarElerTXT() {
                     },
                     body: JSON.stringify(objeto)
                 });
-                
-          
+
           console.log("Arquivo enviado para JSONBin.");
 
         } catch (erroCloud) {
@@ -6933,14 +7161,12 @@ async function carregarProgressoSalvo() {
   carregou = false;
 
   try {
-    
         // 🔹 Tenta carregar do JSONBin primeiro
         const res = await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest", {
             headers: {
                 "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
             }
-        });
-        
+        });       
     
 
     if (!res.ok) throw new Error("Falha no JSONBin");
