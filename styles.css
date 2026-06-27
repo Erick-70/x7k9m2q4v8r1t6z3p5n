@@ -46,6 +46,15 @@
 }
 
 /* =========================
+   Detalhes (cinza claro)
+========================= */
+.linha-detalhes td {
+    background: rgba(240, 240, 240, 0.5);
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* =========================
    RESULTADOS (AZUL CLARO)
 ========================= */
 .linha-resultado td {
