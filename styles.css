@@ -1,3 +1,37 @@
+.caixa-titulo{
+    font-size:22px;
+    font-weight:bold;
+    text-align:center;
+    padding:12px;
+    background-color: rgba(211, 237, 249, 0.5);
+    color: black;
+    border-radius:8px;
+    cursor:pointer;
+    user-select:none;
+    margin-bottom:0;
+    transition: background-color .2s ease;
+}
+
+.caixa-titulo:hover{
+    background-color: rgba(211, 237, 249, 0.8);
+}
+
+.caixa-conteudo{
+    display:none;
+    margin-top:10px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 .fluxo-caixa {
     width: 100%;
     border-collapse: collapse;
@@ -25,6 +59,14 @@
     font-size: 22px;
     font-weight: 700;
     background: rgba(211, 237, 249, 0.5);
+    text-transform: uppercase;
+    padding: 10px;
+}
+
+.linha-titulo1 td {
+    font-size: 19px;
+    font-weight: 700;
+    background: rgba(211, 237, 249, 0.3);
     text-transform: uppercase;
     padding: 10px;
 }
