@@ -12,25 +12,251 @@ function detalharDRE() {
     btn.textContent = statusDetalhesDRE
         ? 'Ocultar detalhes'
         : 'Mostrar detalhes';
+
+    let linhasDRECaixas = document.getElementsByClassName('linha-dre-caixas');
+    for (let i = 0; i < linhasDRECaixas.length; i++) {
+        linhasDRECaixas[i].style.display = statusDetalhesDRE ? '' : 'none';
+    }
 }
 
-function pegarSaldoCaixas (){
+function pegarMovimentacoesCaixas() {
     chamarCaixas();
-    var caixas = document.getElementsByClassName('caixa-header');
-    var nomesCaixas = document.getElementsByClassName('caixa-nome-input');
-    var tabelas = document.getElementsByClassName('cronograma-caixas');
-    
-    let resultados = [];
 
-    for (var i = 0; i < caixas.length; i++){
-        let n = nomesCaixas[i].value;
-        let tabela = tabelas[i];
-        let linhas = tabela.getElementsByTagName('tr');
-        let saldo = linhas[linhas.length - 1].querySelector('.boletim-mensal-saldo').getAttribute('data-valor');
-        resultados.push([n, saldo]);
+    const nomesCaixas = document.getElementsByClassName("caixa-nome-input");
+    const tabelas = document.getElementsByClassName("cronograma-caixas");
+
+    const resultado = {};
+
+    for (let i = 0; i < tabelas.length; i++) {
+
+        const nomeCaixa = nomesCaixas[i].value || `Caixa ${i + 1}`;
+        const linhas = tabelas[i].querySelectorAll("tr");
+
+        const entradas = {};
+        const saidas = {};
+
+        function adicionar(obj, descricao, valor) {
+
+            valor = Number(valor) || 0;
+
+            obj[descricao] = (obj[descricao] || 0) + valor;
+        }
+
+        linhas.forEach(linha => {
+            const lblDescricao = linha.querySelector("td:first-child label");
+
+            if (!lblDescricao) return;
+
+            let descricao = 
+                lblDescricao.getAttribute("data-valor")?.trim() || "";
+
+            const lblValor = 
+                linha.querySelector("td:nth-child(2) label");
+
+            let valor = Number(
+                linha.getAttribute("valorlinha") ??
+                lblValor?.getAttribute("data-valor") ??
+                0
+            );
+
+            if (descricao.toLowerCase().includes("saldo passado")) {
+
+                adicionar(entradas, "Saldo Passado", valor);
+
+                return;
+            }
+
+            if (linha.classList.contains("linha-entrada")) {
+
+                adicionar(entradas, descricao, valor);
+
+                return;
+            }
+
+            if (!linha.classList.contains("linha-caixa") && !linha.classList.contains("linha-saida")) {
+                return;
+            }
+
+            if (descricao.startsWith("entrada-mensal -")) {
+
+                descricao = descricao
+                    .replace("entrada-mensal -", "")
+                    .trim();
+
+                adicionar(entradas, descricao, valor
+                );
+
+
+            } else if (descricao.startsWith("entrada -")) {
+
+                descricao = descricao.replace("entrada -", "").trim();
+
+                adicionar(entradas, descricao, valor );
+
+            }
+
+            else if (descricao.startsWith("saida -")) {
+
+                descricao = descricao.replace("saida -", "").trim();
+
+                adicionar(saidas, descricao, -Math.abs(valor));
+            }
+
+            else if (descricao.startsWith("retorno -")) {
+
+                descricao = descricao.replace("retorno -", "").trim();
+
+                adicionar(saidas, descricao, -Math.abs(valor));
+
+            }
+
+            else if (
+                linha.classList.contains("linha-saida")
+            ) {
+                adicionar(saidas, descricao, -Math.abs(valor));
+            }
+        });
+
+
+        resultado[nomeCaixa] = {
+            entradas: Object.entries(entradas),
+            saidas: Object.entries(saidas)
+        };
+
     }
 
-    return resultados;
+    return resultado;
+}
+
+
+function pegarMovimentacoesCaixasMeses(dicionarios) {
+
+    function extrairValor(texto) {
+
+        const match = texto.match(/Valor R\$\s*(-?[\d.,]+)/i);
+
+        if (!match)
+            return 0;
+
+        return Number(
+            match[1]
+                .replace(/\./g, "")
+                .replace(",", ".")
+        );
+    }
+
+    const resultado = {};
+
+    function adicionar(obj, descricao, valor) {
+        valor = Number(valor) || 0;
+        obj[descricao] = (obj[descricao] || 0) + valor;
+    }
+
+    for (let mes = 2; mes <= 12; mes++) {
+
+        const movimentos = dicionarios[mes] || {};
+        const caixas = {};
+
+        Object.values(movimentos).forEach(item => {
+
+            if (!item || typeof item !== "object")
+                return;
+
+            if (item.movimentacao !== "caixa")
+                return;
+
+            const partes = item.descricao.split(" - ");
+
+            if (partes.length < 2)
+                return;
+
+            const nomeCaixa = partes[0].replace(/^Caixa\s*/, "").trim();
+
+            if (!caixas[nomeCaixa]) {
+                caixas[nomeCaixa] = {
+                    entradas: {},
+                    saidas: {}
+                };
+            }
+
+            const segundo = partes[1].trim();
+
+            if (segundo === "Entrada") {
+
+                const descricao = partes.slice(2).join(" - ").trim();
+
+                adicionar(
+                    caixas[nomeCaixa].entradas,
+                    descricao,
+                    Math.abs(item.valor)
+                );
+
+                return;
+            }
+
+            if (segundo === "Entrada Mensal") {
+
+                const descricao = partes.slice(2).join(" - ").trim();
+
+                adicionar(
+                    caixas[nomeCaixa].entradas,
+                    descricao,
+                    Math.abs(item.valor)
+                );
+
+                return;
+            }
+
+            if (segundo === "Saida") {
+
+                const descricao = partes.slice(2).join(" - ").trim();
+
+                adicionar(
+                    caixas[nomeCaixa].saidas,
+                    descricao,
+                    Math.abs(item.valor)
+                );
+
+                return;
+            }
+
+            const descricao = segundo;
+            const valor = extrairValor(item.descricao);
+
+            if (valor >= 0) {
+
+                adicionar(
+                    caixas[nomeCaixa].entradas,
+                    descricao,
+                    valor
+                );
+
+            } else {
+
+                adicionar(
+                    caixas[nomeCaixa].saidas,
+                    descricao,
+                    Math.abs(valor)
+                );
+
+            }
+
+        });
+
+        resultado[mes] = {};
+
+        for (const [nome, dados] of Object.entries(caixas)) {
+
+            resultado[mes][nome] = {
+                entradas: Object.entries(dados.entradas),
+                saidas: Object.entries(dados.saidas)
+            };
+
+        }
+
+    }
+
+    return resultado;
 }
 
 var statusDetalhesDRE = true;
@@ -49,16 +275,13 @@ function dreFuncao() {
 
     }
 
-    let caixas = pegarSaldoCaixas();
-    mostrarIconer('Icone13');
-
     let data = new Date();
 
     let saldoInicialGlobal = Number(
         document.getElementById('saldoMesPassado').getAttribute('data-valor')
     );
 
-    let dicionarios = calcularValoresMensais(
+    const dicionarios = calcularValoresMensais(
         atualizarDadosReceitas(),
         atualizarDadosCartoes(),
         atualizarDadosDiversos(),
@@ -68,6 +291,11 @@ function dreFuncao() {
         criarDicionarioMoedas(),
         data
     );
+
+    let dicionarios_ = structuredClone(dicionarios);
+
+    let dicionarioMovimentacoesCaixas = pegarMovimentacoesCaixasMeses(atualizarDicionarioBoletimCaixa(dicionarios_));
+    console.log(dicionarioMovimentacoesCaixas); 
 
     let dadosMes = [];
 
@@ -190,20 +418,61 @@ function dreFuncao() {
 
         let caixasMovimentacao = [];
 
-        let resultadoFinal = resultadoLiquido;
         let caixaTotal = 0;
+
+        let caixasDetalhes = [];
 
         if (i === 0) {
 
-            for (const caixa of caixas) {
-                const valor = Number(caixa[1]);
-                caixaTotal += valor;
+            const movimentacoes = pegarMovimentacoesCaixas();
 
-                resultadoFinal -= valor;
-                caixasMovimentacao.push([caixa[0], valor]);
+            for (const [nome, dados] of Object.entries(movimentacoes)) {
+
+                const totalEntradas =
+                    dados.entradas.reduce((s, x) => s + x[1], 0);
+
+                const totalSaidas =
+                    dados.saidas.reduce((s, x) => s + x[1], 0);
+
+                const saldo = totalEntradas + totalSaidas;
+
+                caixasDetalhes.push({
+                    nome,
+                    saldo,
+                    entradas: dados.entradas,
+                    saidas: dados.saidas
+                });
+
+                caixaTotal += saldo;
             }
 
+        } else {
+
+            // i + 1 corresponde ao mês do dicionário
+            const movimentacoes = dicionarioMovimentacoesCaixas[i + 1] || {};
+
+            for (const [nome, dados] of Object.entries(movimentacoes)) {
+
+                const totalEntradas =
+                    dados.entradas.reduce((s, x) => s + x[1], 0);
+
+                const totalSaidas =
+                    dados.saidas.reduce((s, x) => s + x[1], 0);
+
+                const saldo = totalEntradas - totalSaidas;
+
+                caixasDetalhes.push({
+                    nome,
+                    saldo,
+                    entradas: dados.entradas,
+                    saidas: dados.saidas
+                });
+
+                caixaTotal += saldo;
+            }
         }
+
+        let resultadoFinal = resultadoLiquido - caixaTotal;
 
         // SALDO
 
@@ -264,8 +533,8 @@ function dreFuncao() {
 
             resultadoFinal,
             caixas: {
-                total: i === 0 ? resultadoFinal : resultadoLiquido,
-                movimentacoes: caixasMovimentacao
+                total: caixaTotal,
+                lista: caixasDetalhes
             },
             caixaTotal
         });
@@ -306,6 +575,7 @@ function dreFuncao() {
         `;
     }
     detalharDRE();
+    mostrarIconer('Icone13');
 }
 
 function criarHTMLFluxoCaixa(m1, m2, m3, nomesMeses) {
@@ -535,17 +805,14 @@ ${tituloGrupo("(=) RESULTADO LÍQUIDO", "grupo-resultado", m => m.resultadoLiqui
 <tr><td colspan="7"></td></tr>
 
 <!-- ================= CAIXAS ================= -->
-${tituloGrupo("(-) CAIXAS", "", m => m.caixaTotal)}
 
-${linhasMovimentacoes(
-    m => m.caixas.movimentacoes,
-    m => m.caixas.total,
-    "linha-detalhes"
-)}
+${tituloGrupo("(=) CAIXAS", "", m => m.caixaTotal)}
+
+${htmlCaixas(meses, moeda, perc)}
 
 <tr><td colspan="7"></td></tr>
 
-${tituloGrupo("(=) RESULTADO FINAL", "grupo-resultado", m => m.caixas.total)}
+${tituloGrupo("(=) RESULTADO FINAL", "grupo-resultado", m => m.resultadoFinal)}
 
 </tbody>
 
@@ -554,6 +821,257 @@ ${tituloGrupo("(=) RESULTADO FINAL", "grupo-resultado", m => m.caixas.total)}
 <p></p>
 `;
 }
+
+function htmlCaixas(meses, moeda, perc) {
+
+    let html = "";
+
+    // Todas as caixas existentes nos 3 meses
+    const nomesCaixas = [
+        ...new Set(
+            meses.flatMap(m =>
+                m.caixas.lista.map(c => c.nome)
+            )
+        )
+    ];
+
+
+    nomesCaixas.forEach(nomeCaixa => {
+
+        html += `
+        <tr class="linha-titulo1 linha-dre-caixas">
+            <td>${nomeCaixa}</td>
+        `;
+
+        meses.forEach(mes => {
+
+            const caixa = mes.caixas.lista.find(
+                c => c.nome === nomeCaixa
+            );
+
+            if (caixa) {
+
+                html += `
+                    <td>${moeda(caixa.saldo)}</td>
+                    <td>${perc(caixa.saldo, mes.caixaTotal)}</td>
+                `;
+
+            } else {
+
+                html += `
+                    <td></td>
+                    <td></td>
+                `;
+            }
+
+        });
+
+        html += "</tr>";
+
+        html += `
+        <tr class="linha-positiva linha-dre-caixas">
+            <td style="padding-left:20px;">Entradas</td>
+        `;
+
+
+        meses.forEach(mes => {
+
+            const caixa = mes.caixas.lista.find(
+                c => c.nome === nomeCaixa
+            );
+
+            if (caixa) {
+
+                const totalEntradas = caixa.entradas
+                    .reduce((s,x)=>s+x[1],0);
+
+
+                html += `
+                    <td>${moeda(totalEntradas)}</td>
+                    <td>${perc(totalEntradas,totalEntradas)}</td>
+                `;
+
+            } else {
+
+                html += `
+                    <td></td>
+                    <td></td>
+                `;
+            }
+
+        });
+
+        html += "</tr>";
+
+        const nomesEntradas = [
+            ...new Set(
+                meses.flatMap(m => {
+
+                    const caixa = m.caixas.lista.find(
+                        c => c.nome === nomeCaixa
+                    );
+
+                    return caixa
+                        ? caixa.entradas.map(x=>x[0])
+                        : [];
+
+                })
+            )
+        ];
+
+        nomesEntradas.forEach(nomeEntrada => {
+
+            html += `
+            <tr class="linha-detalhes linha-dre-caixas">
+                <td style="padding-left:40px;">${nomeEntrada}</td>
+            `;
+
+
+            meses.forEach(mes => {
+
+                const caixa = mes.caixas.lista.find(
+                    c=>c.nome===nomeCaixa
+                );
+
+
+                const item = caixa?.entradas.find(
+                    x=>x[0]===nomeEntrada
+                );
+
+
+                if(item){
+
+                    const totalEntradas = caixa.entradas
+                        .reduce((s,x)=>s+x[1],0);
+
+
+                    html += `
+                        <td>${moeda(item[1])}</td>
+                        <td>${perc(item[1],totalEntradas)}</td>
+                    `;
+
+                } else {
+
+                    html += `
+                        <td></td>
+                        <td></td>
+                    `;
+                }
+
+            });
+
+
+            html += "</tr>";
+
+        });
+
+        html += `
+        <tr class="linha-negativa linha-dre-caixas">
+            <td style="padding-left:20px;">Saídas</td>
+        `;
+
+
+        meses.forEach(mes=>{
+
+
+            const caixa = mes.caixas.lista.find(
+                c=>c.nome===nomeCaixa
+            );
+
+            if(caixa){
+
+                const totalSaidas = caixa.saidas
+                    .reduce((s,x)=>s+x[1],0);
+
+
+                html += `
+                    <td>${moeda(-totalSaidas)}</td>
+                    <td>${perc(totalSaidas,totalSaidas)}</td>
+                `;
+
+            }else{
+
+                html += `
+                    <td></td>
+                    <td></td>
+                `;
+            }
+
+
+        });
+
+        html += "</tr>";
+
+        const nomesSaidas = [
+            ...new Set(
+                meses.flatMap(m=>{
+
+                    const caixa=m.caixas.lista.find(
+                        c=>c.nome===nomeCaixa
+                    );
+
+                    return caixa
+                        ? caixa.saidas.map(x=>x[0])
+                        : [];
+
+                })
+            )
+        ];
+
+
+
+        nomesSaidas.forEach(nomeSaida=>{
+
+
+            html += `
+            <tr class="linha-detalhes linha-dre-caixas">
+                <td style="padding-left:40px;">${nomeSaida}</td>
+            `;
+
+
+            meses.forEach(mes=>{
+
+
+                const caixa=mes.caixas.lista.find(
+                    c=>c.nome===nomeCaixa
+                );
+
+                const item=caixa?.saidas.find(
+                    x=>x[0]===nomeSaida
+                );
+
+                if(item){
+
+                    const totalSaidas=caixa.saidas
+                        .reduce((s,x)=>s+x[1],0);
+
+                    html += `
+                        <td>${moeda(-item[1])}</td>
+                        <td>${perc(item[1],totalSaidas)}</td>
+                    `;
+
+                }else{
+
+                    html += `
+                        <td></td>
+                        <td></td>
+                    `;
+                }
+
+
+            });
+
+            html += "</tr>";
+
+        });
+
+        html += `<tr class="linha-dre-caixas"><td colspan="7"></td></tr>`;
+
+    });
+
+    return html;
+}
+
 
 function formatar(valor) {
     return valor.toLocaleString('pt-BR', {
@@ -1696,6 +2214,30 @@ function criarCronogramaCaixas (){
     });
 }
 
+function toggleCaixa(id) {
+    const conteudo = document.getElementById(`conteudo-caixa-${id}`);
+
+    if (conteudo.style.display === "none") {
+        conteudo.style.display = "block";
+    } else {
+        conteudo.style.display = "none";
+    }
+}
+
+function atualizarTituloCaixa(id) {
+    const nome = document.getElementById(`caixa-nome-${id}`).value.trim();
+    document.getElementById(`titulo-caixa-${id}`).textContent =
+        nome || "Nova Caixa";
+}
+
+function atualizarTodosTitulosCaixas() {
+    document.querySelectorAll('.caixa-item').forEach(caixa => {
+        const id = caixa.getAttribute('data-caixa-id');
+        atualizarTituloCaixa(id);
+    });
+}
+
+
 let contadorCaixas = 0;
 
 function addCaixa() {
@@ -1706,17 +2248,38 @@ function addCaixa() {
     novaDiv.setAttribute('data-caixa-id', contadorCaixas);
 
     novaDiv.innerHTML = `
-        <div class="caixa-header" id="caixa-header-${contadorCaixas}">
+        <div class="caixa-titulo" onclick="toggleCaixa(${contadorCaixas})">
+            <span id="titulo-caixa-${contadorCaixas}">Nova Caixa</span>
+        </div>
+
+        <div class="caixa-conteudo" id="conteudo-caixa-${contadorCaixas}" style="display:none;">
+
             <label for="caixa-nome-${contadorCaixas}">Nome da Caixa:</label>
-            <input type="text" id="caixa-nome-${contadorCaixas}" class="caixa-nome-input descricao-input" placeholder="Nome da Caixa">
+            <input type="text"
+                id="caixa-nome-${contadorCaixas}"
+                class="caixa-nome-input descricao-input"
+                placeholder="Nome da Caixa"
+                oninput="atualizarTituloCaixa(${contadorCaixas})">
 
             <label for="caixa-saldo-${contadorCaixas}">Saldo Inicial:</label>
-            <input type="text" id="caixa-saldo-${contadorCaixas}" class="caixa-saldo-input valor-input" placeholder="R$ 0,00" data-valor="0" onblur="formatarValorCaixaLivre(this, ${contadorCaixas})">
+            <input type="text"
+                id="caixa-saldo-${contadorCaixas}"
+                class="caixa-saldo-input valor-input"
+                placeholder="R$ 0,00"
+                data-valor="0"
+                onblur="formatarValorCaixaLivre(this, ${contadorCaixas})">
 
             <label for="caixa-saldo-atual-${contadorCaixas}">Saldo Atual:</label>
-            <input type="text" id="caixa-saldo-atual-${contadorCaixas}" class="caixa-saldo-atual-input valor-input" placeholder="R$ 0,00" disabled data-valor="0">
+            <input type="text"
+                id="caixa-saldo-atual-${contadorCaixas}"
+                class="caixa-saldo-atual-input valor-input"
+                placeholder="R$ 0,00"
+                disabled
+                data-valor="0">
 
-            <button class="remover-linha" onclick="removerCaixa(${contadorCaixas})">Remover Caixa</button>
+            <button class="remover-linha" onclick="removerCaixa(${contadorCaixas})">
+                Remover Caixa
+            </button>
 
             <p></p>
             <div class="caixa-body">
@@ -2418,6 +2981,7 @@ function atualizarCaixaValoresFixos () {
 function chamarCaixas(){
     atualizarCaixaValoresFixos();
     criarCronogramaCaixas();
+    atualizarTodosTitulosCaixas();
     mostrarIconer('Icone12');
 }
 
@@ -7089,7 +7653,7 @@ function selecionarElerTXT() {
 
         // ✅ Envia para JSONBin
         try {
-            
+
                 await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
                     method: "PUT",
                     headers: {
@@ -7161,13 +7725,14 @@ async function carregarProgressoSalvo() {
   carregou = false;
 
   try {
+
         // 🔹 Tenta carregar do JSONBin primeiro
         const res = await fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest", {
             headers: {
                 "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
             }
         });       
-    
+
 
     if (!res.ok) throw new Error("Falha no JSONBin");
 
