@@ -1,3 +1,111 @@
+.aviso-jsonbin {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translate(-50%, 20px);
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    width: max-content;
+    max-width: calc(100% - 30px);
+    box-sizing: border-box;
+    padding: 12px 18px;
+
+    background: #2e164b;
+    color: #f3e8ff;
+    border: 1px solid #9333ea;
+    border-radius: 12px;
+
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 5px 20px rgba(126, 34, 206, 0.3);
+    z-index: 99999;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease,
+        visibility 0.25s ease;
+}
+
+.aviso-jsonbin.visivel {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+
+.aviso-jsonbin-icone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+
+    border-radius: 50%;
+    background: #a855f7;
+    color: white;
+    font-weight: 800;
+}
+
+@media (max-width: 480px) {
+    .aviso-jsonbin {
+        bottom: 12px;
+        padding: 10px 13px;
+        font-size: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aviso-jsonbin {
+        transition: none;
+    }
+}
+
+
+
+
+
+#saveButton {
+    position: relative;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Ícone com alterações pendentes no JSONBin */
+#saveButton.pendente img {
+    animation: alertaSalvamento 1.2s ease-in-out infinite;
+}
+
+@keyframes alertaSalvamento {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: drop-shadow(0 0 2px rgba(168, 85, 247, 0.5));
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 9px rgba(168, 85, 247, 1));
+    }
+}
+
+/* Respeita a preferência por menos animações */
+@media (prefers-reduced-motion: reduce) {
+    #saveButton.pendente img {
+        animation: none;
+        opacity: 1;
+        filter: drop-shadow(0 0 5px #A855F7);
+    }
+}
+
+
 .caixa-titulo{
     font-size:22px;
     font-weight:bold;
@@ -20,17 +128,6 @@
     display:none;
     margin-top:10px;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 .fluxo-caixa {
     width: 100%;
@@ -688,7 +785,7 @@ button {
         width: 60px; 
         font-size: 20px
     }
-    .remover-linha {
+    .remover-linha, .remover-linha-toast {
         font-size: 20px;
     }
     .icon svg, .icone svg, .icone img, .icon img {
@@ -730,7 +827,7 @@ button {
         width: 45px; 
         font-size: 15px;
     }
-    .remover-linha {
+    .remover-linha, .remover-linha-toast {
         font-size: 15px;
     }
     .icon svg, .icone svg, .icone img, .icon img {
@@ -754,7 +851,7 @@ button {
         font-family: Arial, sans-serif;
         font-size: 15px;
     }
-    body,  .valor-input, .valor-total, .data-input, .descricao-input, .dia-input, .parcela-input, .remover-linha, #expressao{
+    body,  .valor-input, .valor-total, .data-input, .descricao-input, .dia-input, .parcela-input, .remover-linha, .remover-linha-toast, #expressao{
         font-size: 13px;
     }
   
@@ -823,12 +920,13 @@ button {
     text-align: center;
 }
 
-.remover-linha {
+.remover-linha, .remover-linha-toast {
     color: #000;
     border: 1px solid black;
     background-color: white;
 }
-.remover-linha:hover {
+.remover-linha:hover, .remover-linha-toast:hover {
+    color: #fff;
     background-color: #f2f2f2;
     cursor: pointer;
 }
