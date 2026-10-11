@@ -295,7 +295,6 @@ function dreFuncao() {
     let dicionarios_ = structuredClone(dicionarios);
 
     let dicionarioMovimentacoesCaixas = pegarMovimentacoesCaixasMeses(atualizarDicionarioBoletimCaixa(dicionarios_));
-    console.log(dicionarioMovimentacoesCaixas); 
 
     let dadosMes = [];
 
@@ -1194,7 +1193,7 @@ function criarToast(conteudo) {
     toast.innerHTML = conteudo;
 
     let closeButton = document.createElement("button");
-    closeButton.className = "remover-linha";
+    closeButton.className = "remover-linha-toast";
     closeButton.innerHTML = "✖";
 
     closeButton.onclick = function () {
@@ -1214,7 +1213,7 @@ function criarToast(conteudo) {
 function restaurarEstadoAnterior() {
 
   carregou = false;
-  carregarProgressoSalvo();
+  carregarProgressoSalvoJSONBin();
 }
 
 
@@ -1479,18 +1478,6 @@ function atualizarDicionarioBoletimCaixaLeve(dicionarios, dicionarioCaixas){
     })
     return dicionarios;
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 async function BaixarDadosAcoes(){
     function formatarDataExcel(data) {
@@ -7536,21 +7523,7 @@ function salvarDicionario() {
   salvarProgresso(dados); // Chama a função para salvar o progresso
 
     // ✅ Salvar também no JSONBin
-    fetch("https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9", {
-    method: "PUT",
-    headers: {
-        "Content-Type": "application/json",
-        "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
-    },
-    body: JSON.stringify(dados)
-    })
-    .then(response => response.json())
-    .then(res => {
-    console.log("Salvo no JSONBin:", res);
-    })
-    .catch(err => {
-    console.error("Erro ao salvar no JSONBin:", err);
-    });
+    salvarNoJSONBin(dados);
 }
 
 
@@ -7570,7 +7543,7 @@ function notificacaoSalvamento () {
 
     // Criar botão de fechar
     let closeButton = document.createElement("button");
-    closeButton.className = 'remover-linha';
+    closeButton.className = 'remover-linha-toast';
     closeButton.innerHTML = "✖";
     closeButton.onclick = function () {
         toast.style.animation = "fadeOut 0.5s ease-in-out";
@@ -7719,7 +7692,7 @@ function salvarProgresso(dadosObjeto) {
   }
 }
 
-async function carregarProgressoSalvo() {
+async function carregarProgressoSalvoJSONBin() {
     carregou = true;
     mostrarIconer("Icone0");
   carregou = false;
@@ -7743,6 +7716,17 @@ async function carregarProgressoSalvo() {
     CarregarTudo(dicionarios);
     carregou = true;
     executarAoCarregar();
+
+    // Cancela um salvamento automático pendente
+    clearTimeout(temporizadorSalvamento);
+
+    // Remove o indicador de alterações pendentes
+    localStorage.removeItem("progressoPendenteJSONBin");
+
+    // Restaura o botão e oculta o aviso
+    indicarSalvo();
+
+    console.log("Progresso carregado do localStorage.");
 
     
     console.log("Progresso carregado do JSONBin.");
@@ -7768,14 +7752,131 @@ async function carregarProgressoSalvo() {
     const dicionarios = parseDicionarios(objeto);
     CarregarTudo(dicionarios);
     carregou = true;
-    executarAoCarregar();
 
-    console.log("Progresso carregado do localStorage.");
+    executarAoCarregar();
 
   } catch (erro) {
     console.error("Erro ao carregar progresso local:", erro);
   }
   
+}
+
+async function carregarProgressoSalvo() {
+    carregou = false;
+    mostrarIconer("Icone0");
+
+    try {
+        // 1. Verifica se existe uma versão automática pendente
+        const pendenteJSON = localStorage.getItem(
+            "progressoPendenteJSONBin"
+        );
+
+        if (pendenteJSON) {
+            const pendente = JSON.parse(pendenteJSON);
+            const objeto = pendente.dados;
+
+            if (objeto) {
+                const dicionarios = parseDicionarios(objeto);
+
+                CarregarTudo(dicionarios);
+
+                carregou = true;
+                executarAoCarregar();
+
+                indicarPendente();
+
+                console.log(
+                    "Versão automática carregada. " +
+                    "Ainda não sincronizada com o JSONBin."
+                );
+
+                return;
+            }
+        }
+
+        // 2. Sem pendências: tenta carregar do JSONBin
+        const res = await fetch(
+            "https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9/latest",
+            {
+                headers: {
+                    "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+                }
+            }
+        );
+
+        if (!res.ok) {
+            throw new Error("Falha no JSONBin");
+        }
+
+        const json = await res.json();
+        const objeto = json.record;
+
+        const dicionarios = parseDicionarios(objeto);
+
+        CarregarTudo(dicionarios);
+
+        carregou = true;
+        executarAoCarregar();
+
+        // Atualiza o cache da última versão remota confirmada
+        localStorage.setItem(
+            "progressoSalvo",
+            JSON.stringify(objeto)
+        );
+
+        indicarSalvo();
+
+        console.log("Progresso carregado do JSONBin.");
+        return;
+
+    } catch (erro) {
+        console.warn("Não foi possível carregar do JSONBin:", erro);
+    }
+
+    // 3. Fallback: tenta recuperar a versão automática local
+    try {
+        const dadosAutomaticos = localStorage.getItem(
+            "dadosOrcamento"
+        );
+
+        if (dadosAutomaticos) {
+            const objeto = JSON.parse(dadosAutomaticos);
+            const dicionarios = parseDicionarios(objeto);
+
+            CarregarTudo(dicionarios);
+
+            carregou = true;
+            executarAoCarregar();
+
+            indicarPendente();
+
+            console.log("Progresso recuperado do salvamento automático.");
+            return;
+        }
+
+        // 4. Último recurso: versão anteriormente confirmada
+        const dadosJSON = localStorage.getItem("progressoSalvo");
+
+        if (!dadosJSON) {
+            console.warn("Nenhum progresso encontrado localmente.");
+            return;
+        }
+
+        const objeto = JSON.parse(dadosJSON);
+        const dicionarios = parseDicionarios(objeto);
+
+        CarregarTudo(dicionarios);
+
+        carregou = true;
+        executarAoCarregar();
+
+        indicarSalvo();
+
+        console.log("Progresso recuperado do cache confirmado.");
+
+    } catch (erro) {
+        console.error("Erro ao recuperar progresso local:", erro);
+    }
 }
 
 function executarAoCarregar() {
@@ -7855,7 +7956,7 @@ function CarregarTudo(dicionarios) {
         inputDiaVencimento.value = parseInt(cartao.diaVencimento);
 
         const inputLimite = document.getElementById(`cartao-${idCartao}-limite`);
-        let limite = cartao.limite
+        let limite = cartao.limite || "0.00";
         inputLimite.value = limite.replace('.',',');
         formatarMoeda(inputLimite, 0);
       
@@ -9210,7 +9311,7 @@ function notificacaoExplicacaoLinha(explicacao) {
 
     // Criar botão de fechar
     let closeButton = document.createElement("button");
-    closeButton.className = "remover-linha";
+    closeButton.className = "remover-linha-toast";
     closeButton.innerHTML = "✖";
     closeButton.onclick = function () {
         toast.style.animation = "fadeOut 0.5s ease-in-out";
@@ -10625,4 +10726,249 @@ function calcularTotalAplicadoCofrinho(data){
     }
   }
   return totalCofrinho;
+}
+
+
+let temporizadorSalvamento;
+
+function salvarAutomaticamente() {
+    clearTimeout(temporizadorSalvamento);
+
+    temporizadorSalvamento = setTimeout(() => {
+        const dados = montarDicionario();
+
+        // Salva a versão mais recente no navegador
+        localStorage.setItem(
+            "dadosOrcamento",
+            JSON.stringify(dados)
+        );
+
+        // Marca que existem alterações pendentes no JSONBin
+        localStorage.setItem(
+            "progressoPendenteJSONBin",
+            JSON.stringify({
+                atualizadoEm: Date.now(),
+                dados: dados
+            })
+        );
+
+        salvarProgresso(dados);
+
+        indicarPendente();
+
+        console.log("Salvo localmente; aguardando sincronização.");
+    }, 1000);
+}
+
+function montarDicionario() {
+    const dicionarioReceitas = atualizarDadosReceitas();
+    const dicionarioCartoes = atualizarDadosCartoes();
+    const dicionarioDiversos = atualizarDadosDiversos();
+
+    const saldoDoMesPassado =
+        `${document.getElementById('saldoMesPassado').value}||` +
+        `${document.getElementById('saldoMesPassado').getAttribute('data-valor')}`;
+
+    let rendimento =
+        document.getElementById('rendimento').getAttribute('data-valor');
+
+    if (rendimento == null) rendimento = 0;
+
+    const dicionarioCofrinho = criarDicionarioCofrinho();
+    const dicionarioCofrinhoMetas = criarDicionarioCofrinhoMetas() ?? {};
+    const dicionarioAcoes = criarDicionarioAcao();
+    const dicionarioProventosAcoes = criarDicionarioProventosAcoes();
+    const dicionarioGruposAcoes = criarDicionarioGruposInvestimentos();
+    const dicionarioMoedas = criarDicionarioMoedas();
+    const dicionarioCaixas = CriarDicionarioCaixas();
+
+    return {
+        dicionarioReceitas,
+        dicionarioCartoes,
+        dicionarioDiversos,
+        saldoDoMesPassado,
+        rendimento,
+        dicionarioCofrinho,
+        dicionarioCofrinhoMetas,
+        listaCheckList,
+        dicionarioAcoes,
+        dicionarioProventosAcoes,
+        dicionarioGruposAcoes,
+        dicionarioMoedas,
+        dicionarioCaixas
+    };
+}
+
+document.addEventListener("input", (evento) => {
+    const campo = evento.target;
+
+    if (!campo.matches("input, textarea, select")) return;
+
+    // Ignora todos os campos dentro de .filtro-container
+    if (campo.closest(".filtro-container")) return;
+
+    const idsIgnorados = [
+        "anoInicial",
+        "anoFinal",
+        "anoAltenativo2",
+        "anoAltenativo1",
+        "expressao"
+    ];
+
+    if (idsIgnorados.includes(campo.id)) return;
+    if (campo.classList.contains("input-filtro")) return;
+
+    indicarPendente();
+    salvarAutomaticamente();
+});
+
+document.addEventListener("change", (evento) => {
+    const campo = evento.target;
+
+    if (!campo.matches("input, textarea, select")) return;
+
+    // Ignora todos os campos dentro de .filtro-container
+    if (campo.closest(".filtro-container")) return;
+
+    const idsIgnorados = [
+        "mesAltenativo1",
+        "mesAltenativo2",
+        "mesInicial",
+        "mesFinal"
+    ];
+
+    if (idsIgnorados.includes(campo.id)) return;
+    if (campo.classList.contains("filtroBoletinsTipo")) return;
+
+    indicarPendente();
+    salvarAutomaticamente();
+});
+
+document.addEventListener("click", (evento) => {
+    const botao = evento.target.closest("button");
+
+    if (!botao) return;
+
+    const texto = botao.textContent.trim().toLowerCase();
+
+    const acoesExcluir = ["remover", "excluir o cartão", "limpar dados", "excluir o ação", "remover caixa"];
+
+    if (acoesExcluir.some(acao => texto.includes(acao))) {
+        indicarPendente();
+        salvarAutomaticamente();
+    }
+});
+
+function salvarAoSair() {
+    const dados = montarDicionario();
+
+    salvarNoJSONBin(dados);
+}
+
+window.addEventListener("pagehide", salvarAoSair);
+
+
+const botaoSalvar = document.getElementById("saveButton");
+
+
+function indicarSalvo() {
+    botaoSalvar?.classList.remove("pendente");
+    botaoSalvar?.setAttribute("title", "Sincronizado com o JSONBin");
+}
+
+function indicarErro() {
+    botaoSalvar?.classList.add("pendente");
+    botaoSalvar?.setAttribute(
+        "title",
+        "Falha na sincronização com o JSONBin"
+    );
+}
+
+async function salvarNoJSONBin(dados) {
+    // Identifica exatamente a versão que está sendo enviada
+    const pendenciaAtual = localStorage.getItem(
+        "progressoPendenteJSONBin"
+    );
+
+    try {
+        const response = await fetch(
+            "https://api.jsonbin.io/v3/b/6992edca43b1c97be9831fc9",
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+                },
+                body: JSON.stringify(dados)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        // Remove a pendência apenas se ela ainda for a mesma
+        if (
+            localStorage.getItem("progressoPendenteJSONBin")
+            === pendenciaAtual
+        ) {
+            localStorage.removeItem("progressoPendenteJSONBin");
+
+            localStorage.setItem(
+                "progressoSalvo",
+                JSON.stringify(dados)
+            );
+
+            indicarSalvo();
+        }
+
+        console.log("Sincronização com JSONBin concluída.");
+
+        return true;
+
+    } catch (erro) {
+        indicarErro();
+
+        console.error("Falha ao salvar no JSONBin:", erro);
+
+        return false;
+    }
+}
+
+function mostrarAvisoJSONBin(mensagem) {
+    const aviso = document.getElementById("avisoJSONBin");
+    const texto = document.getElementById("textoAvisoJSONBin");
+
+    if (!aviso || !texto) return;
+
+    texto.textContent = mensagem ||
+        "Alterações ainda não sincronizadas com o JSONBin";
+
+    aviso.classList.add("visivel");
+}
+
+function esconderAvisoJSONBin() {
+    document.getElementById("avisoJSONBin")
+        ?.classList.remove("visivel");
+}
+
+function indicarPendente() {
+    botaoSalvar?.classList.add("pendente");
+    botaoSalvar?.setAttribute("title", "Alterações pendentes");
+
+    mostrarAvisoJSONBin();
+}
+
+function indicarSalvo() {
+    botaoSalvar?.classList.remove("pendente");
+    botaoSalvar?.setAttribute("title", "Sincronizado com o JSONBin");
+
+    esconderAvisoJSONBin();
+}
+
+function indicarErro() {
+    botaoSalvar?.classList.add("pendente");
+    botaoSalvar?.setAttribute("title", "Falha ao sincronizar");
+
+    mostrarAvisoJSONBin("Falha ao salvar no JSONBin. Tente novamente.");
 }
