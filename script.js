@@ -10812,7 +10812,10 @@ document.addEventListener("input", (evento) => {
         "anoFinal",
         "anoAltenativo2",
         "anoAltenativo1",
-        "expressao"
+        "expressao",
+		"filtro-Investimento",
+		"filtro-Cartoes",
+		"filtro-Receitas"
     ];
 
     if (idsIgnorados.includes(campo.id)) return;
