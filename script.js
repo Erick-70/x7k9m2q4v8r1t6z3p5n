@@ -10815,7 +10815,8 @@ document.addEventListener("input", (evento) => {
         "expressao",
 		"filtro-Investimento",
 		"filtro-Cartoes",
-		"filtro-Receitas"
+		"filtro-Receitas",
+		"filtro-Dividas-Diversas",
     ];
 
     if (idsIgnorados.includes(campo.id)) return;
