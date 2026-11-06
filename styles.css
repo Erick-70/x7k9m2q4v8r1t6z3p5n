@@ -937,3 +937,1038 @@ button {
     padding: 0;
     overflow-x: auto;
 }
+
+
+
+/* ==========================================
+   TEMA ESCURO MODERNO
+========================================== */
+
+:root {
+    color-scheme: dark;
+
+    --bg-principal: #0d1117;
+    --bg-secundario: #151b23;
+    --bg-card: #1b2430;
+    --bg-card-hover: #222e3c;
+    --bg-input: #111821;
+
+    --borda: #303c4a;
+    --borda-suave: #263240;
+
+    --texto: #e6edf3;
+    --texto-secundario: #9ba9b8;
+    --texto-fraco: #718096;
+
+    --roxo: #a78bfa;
+    --roxo-hover: #8b5cf6;
+
+    --azul: #60a5fa;
+    --verde: #34d399;
+    --vermelho: #fb7185;
+    --amarelo: #fbbf24;
+
+    --sombra: 0 4px 15px rgba(0, 0, 0, 0.22);
+
+    --radius: 12px;
+}
+
+/* ==========================================
+   BASE
+========================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    background: var(--bg-principal);
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--bg-principal);
+    color: var(--texto);
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5 {
+    color: var(--texto);
+}
+
+p {
+    color: var(--texto-secundario);
+}
+
+::selection {
+    background: rgba(167, 139, 250, 0.3);
+    color: white;
+}
+
+/* ==========================================
+   SCROLLBAR
+========================================== */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #455367 var(--bg-secundario);
+}
+
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--bg-secundario);
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #455367;
+    border-radius: 10px;
+}
+
+/* ==========================================
+   PAINÉIS PRINCIPAIS
+========================================== */
+
+.container {
+    display: flex;
+    min-height: 100vh;
+    height: 100vh;
+    background: var(--bg-principal);
+}
+
+.left-panel {
+    background: var(--bg-secundario);
+    color: var(--texto);
+    border-right: 1px solid var(--borda);
+}
+
+.right-panel {
+    background: var(--bg-principal);
+    color: var(--texto);
+}
+
+.top-panel {
+    background: var(--bg-secundario);
+    border-bottom: 1px solid var(--borda);
+}
+
+.paginaPrincipal {
+    background: var(--bg-principal);
+    color: var(--texto);
+    padding: 18px;
+}
+
+.paginaCalculadora {
+    background: var(--bg-secundario);
+}
+
+.resizer {
+    background: var(--borda);
+}
+
+.left-resizer:hover,
+.top-resizer:hover {
+    background: var(--roxo);
+}
+
+.containerIcones {
+    background: var(--bg-secundario);
+    border: 1px solid var(--borda);
+    border-radius: var(--radius);
+    padding: 8px;
+}
+
+/* ==========================================
+   BOTÕES
+========================================== */
+
+button {
+    background: var(--bg-card);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 8px 13px;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+button:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--roxo);
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+#toggleButton {
+    background: var(--roxo-hover);
+    color: white;
+    border: none;
+}
+
+#toggleButton:hover {
+    background: var(--roxo);
+}
+
+.icon, .icone {
+    background: transparent;
+    color: var(--texto);
+    border: none;
+    border-radius: 9px;
+}
+
+.icon:hover, .icone:hover {
+    background: var(--bg-card-hover);
+}
+
+.icon img, .icone img,
+.icon svg, .icone svg {
+    max-width: 26px;
+}
+
+/* ==========================================
+   INPUTS
+========================================== */
+
+input,
+select,
+textarea {
+    background: var(--bg-input);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 9px 11px;
+    outline: none;
+    max-width: 100%;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--roxo);
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.13);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--texto-fraco);
+}
+
+input[type="checkbox"] {
+    accent-color: var(--roxo);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+/* ==========================================
+   CARDS E CAIXAS
+========================================== */
+
+.cartaoadd,
+.acao,
+.cambio,
+.grupoInvestimento,
+.caixa-item,
+.divBoletimAltenativo,
+.divBoletimAltenativoGeral,
+.grafico-container,
+.grafico-container-barras,
+.mes-container {
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-radius: var(--radius);
+    box-shadow: var(--sombra);
+}
+
+.cartaoadd,
+.acao,
+.cambio,
+.grupoInvestimento,
+.caixa-item {
+    padding: 16px;
+    margin: 12px auto;
+}
+
+#proventos-investimentos,
+#grupos-investimentos,
+#historia-investimentos,
+#distribuicao-ponderada-investimentos {
+    background: var(--bg-secundario);
+    border: 1px solid var(--borda);
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 12px;
+}
+
+#div-Proventos-Investimento,
+#div-Grupos-Investimento,
+#div-historico-Investimento,
+#div-distribuicao-ponderada-Investimento {
+    background: var(--bg-card);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#div-Proventos-Investimento:hover,
+#div-Grupos-Investimento:hover,
+#div-historico-Investimento:hover,
+#div-distribuicao-ponderada-Investimento:hover {
+    background: var(--bg-card-hover);
+}
+
+.caixa-titulo {
+    background: var(--bg-card);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    border-radius: var(--radius);
+    font-size: 19px;
+    padding: 13px;
+}
+
+.caixa-titulo:hover {
+    background: var(--bg-card-hover);
+}
+
+/* ==========================================
+   TABELAS
+========================================== */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--texto);
+    border-color: var(--borda);
+}
+
+table,
+th,
+td {
+    border: 1px solid var(--borda);
+}
+
+th {
+    background: #202b39;
+    color: var(--texto);
+    padding: 11px 9px;
+    font-weight: 600;
+    text-align: center;
+}
+
+td {
+    background: var(--bg-card);
+    color: var(--texto-secundario);
+    padding: 9px;
+    border-bottom: 1px solid var(--borda-suave);
+}
+
+tbody tr:hover td {
+    background: var(--bg-card-hover);
+}
+
+.fluxo-caixa {
+    font-size: 15px;
+}
+
+.fluxo-caixa thead th {
+    background: #202b39;
+    color: var(--texto);
+}
+
+.linha-titulo td {
+    background: #293448;
+    color: white;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.linha-titulo1 td {
+    background: #222e40;
+    color: var(--texto);
+    font-size: 17px;
+}
+
+.linha-positiva td {
+    background: rgba(16, 185, 129, 0.12);
+    color: #6ee7b7;
+}
+
+.linha-negativa td {
+    background: rgba(244, 63, 94, 0.12);
+    color: #fda4af;
+}
+
+.linha-detalhes td {
+    background: #202a36;
+    color: var(--texto-secundario);
+    font-size: 13px;
+}
+
+.linha-resultado td {
+    background: rgba(96, 165, 250, 0.12);
+    color: #93c5fd;
+    font-weight: 700;
+}
+
+.linha-final td {
+    background: rgba(167, 139, 250, 0.17);
+    color: #c4b5fd;
+    font-weight: 800;
+    font-size: 15px;
+}
+
+#Cronograma-Check-list {
+    overflow-x: auto;
+}
+
+#Cronograma-Check-list thead th {
+    background: #293448;
+    color: var(--texto);
+}
+
+.tabela-calendario th,
+.tabela-calendario td {
+    border: 1px solid var(--borda);
+}
+
+/* ==========================================
+   FILTROS E CHIPS
+========================================== */
+
+.filtro-container {
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-radius: var(--radius);
+    padding: 8px;
+}
+
+.input-filtro {
+    background: transparent;
+    color: var(--texto);
+    border: none;
+    box-shadow: none;
+}
+
+.chip {
+    background: rgba(167, 139, 250, 0.15);
+    color: #c4b5fd;
+    border: 1px solid rgba(167, 139, 250, 0.35);
+    border-radius: 20px;
+    padding: 6px 11px;
+}
+
+.chip .close-btn {
+    color: #c4b5fd;
+}
+
+/* ==========================================
+   GRÁFICOS
+========================================== */
+
+.grafico-container,
+.grafico-container-barras,
+.mes-container {
+    padding: 14px;
+    margin: 8px;
+    min-width: 0;
+}
+
+.grafico-container h3,
+.mes-container h3 {
+    text-align: center;
+    color: var(--texto);
+}
+
+#graficosPizzaSetores,
+#grafico-pizza-Cartoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    gap: 15px;
+}
+
+#graficosPizzaSetores canvas {
+    min-width: 220px;
+    max-width: 400px;
+}
+
+#containerGraficoCartoes,
+#containerGraficoInvestimento {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+#containerGraficoCartoes canvas {
+    min-width: 750px;
+}
+
+#grafico-pizza-Cartoes canvas {
+    min-width: 140px;
+    max-width: 250px;
+}
+
+#graficoPizzaInvestimentos {
+    min-width: 300px;
+    max-width: 700px;
+}
+
+#graficoBarrasInvestimentos,
+#graficoProventosAcoes {
+    max-height: 500px;
+}
+
+canvas {
+    max-width: 100%;
+}
+
+/* ==========================================
+   BOLETIM E CHECKLIST
+========================================== */
+
+.div-filtros-boletim-mensal-p {
+    background: var(--bg-card);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 7px;
+}
+
+#tabelaCheckList td:nth-child(3),
+#tabelaCheckList td:nth-child(4),
+#tabelaCheckList2 td:nth-child(3),
+#tabelaCheckList2 td:nth-child(4) {
+    text-align: center;
+}
+
+.checkbox {
+    accent-color: var(--roxo);
+}
+
+/* ==========================================
+   TOASTS E AVISOS
+========================================== */
+
+.toast {
+    background: #14532d;
+    color: #dcfce7;
+    border: 1px solid #22c55e;
+    border-radius: var(--radius);
+    padding: 12px 15px;
+    box-shadow: var(--sombra);
+}
+
+.toast button {
+    background: transparent;
+    color: white;
+    border: none;
+}
+
+.aviso-jsonbin {
+    background: #241b38;
+    color: #e9ddff;
+    border: 1px solid #805ad5;
+    border-radius: var(--radius);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.aviso-jsonbin-icone {
+    background: var(--roxo-hover);
+}
+
+#saveButton.pendente img {
+    filter: drop-shadow(0 0 7px var(--roxo));
+}
+
+/* ==========================================
+   BOTÃO REMOVER
+========================================== */
+
+.remover-linha,
+.remover-linha-toast {
+    background: rgba(244, 63, 94, 0.12);
+    color: #fda4af;
+    border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.remover-linha:hover,
+.remover-linha-toast:hover {
+    background: #be123c;
+    color: white;
+}
+
+/* ==========================================
+   CARREGAMENTO
+========================================== */
+
+.carregando {
+    background: var(--bg-principal);
+}
+
+.spinner {
+    border-color: #303c4a;
+    border-top-color: var(--roxo);
+}
+
+/* ==========================================
+   COFRINHO
+========================================== */
+
+.cofrinho,
+.cofrinho-metas {
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-radius: var(--radius);
+    overflow-x: auto;
+}
+
+/* ==========================================
+   TEXTAREA
+========================================== */
+
+textarea {
+    background: var(--bg-input);
+    color: var(--texto);
+    border: 1px solid var(--borda);
+}
+
+/* ==========================================
+   RESPONSIVIDADE
+========================================== */
+
+@media (max-width: 999px) {
+
+    html, body {
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    .container {
+        flex-direction: column;
+        height: 100dvh;
+        min-height: 100dvh;
+    }
+
+    .right-panel {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+    }
+
+    .paginaPrincipal {
+        padding: 10px;
+        overflow-x: hidden;
+    }
+
+    .containerIcones {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        height: auto;
+        max-height: none;
+        min-height: 55px;
+        padding: 7px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-shrink: 0;
+        border-radius: 0;
+    }
+
+    .icon,
+    .icone {
+        flex: 0 0 auto;
+        min-width: 43px;
+        min-height: 43px;
+        padding: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .icon img,
+    .icone img,
+    .icon svg,
+    .icone svg {
+        width: 23px;
+        height: 23px;
+    }
+
+    .div-filtros-boletim-mensal {
+        flex-direction: column;
+    }
+
+    .tabelaBoletim,
+    #CheckListDiv,
+    #CheckListDiv2,
+    .graficosGrid,
+    .boletimgraficoContainer {
+        grid-template-columns: 1fr;
+    }
+
+    .cartaoadd,
+    .acao,
+    .cambio,
+    .grupoInvestimento,
+    .caixa-item {
+        padding: 12px;
+        margin: 8px 0;
+    }
+
+    .descricao {
+        font-size: 20px;
+    }
+
+    .valor-input,
+    .valor-total {
+        width: 100px;
+    }
+
+    .data-input {
+        width: 125px;
+    }
+
+    .descricao-input {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .dia-input {
+        width: 42px;
+    }
+
+    .parcela-input {
+        width: 50px;
+    }
+
+    .grafico-container,
+    .grafico-container-barras,
+    .mes-container {
+        margin: 6px 0;
+        padding: 10px;
+    }
+
+    .table-container,
+    .cofrinho,
+    .cofrinho-metas {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 500px;
+    }
+
+    #Receitas-container table,
+    .tabelaDiversos table,
+    .tabelaBoletim table {
+        min-width: 0;
+    }
+
+    input,
+    select,
+    button {
+        min-height: 38px;
+    }
+
+    ._PC {
+        display: none;
+    }
+
+    .aviso-jsonbin {
+        bottom: 12px;
+        width: calc(100% - 24px);
+        max-width: 450px;
+        padding: 11px 13px;
+        font-size: 13px;
+    }
+
+    .toast {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-width: none;
+    }
+}
+
+/* ==========================================
+   CELULARES PEQUENOS
+========================================== */
+
+@media (max-width: 480px) {
+
+    body {
+        font-size: 14px;
+    }
+
+    .paginaPrincipal {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 21px;
+    }
+
+    h2 {
+        font-size: 19px;
+    }
+
+    h3 {
+        font-size: 16px;
+    }
+
+    .caixa-titulo {
+        font-size: 16px;
+        padding: 11px;
+    }
+
+    .fluxo-caixa {
+        font-size: 13px;
+    }
+
+    .fluxo-caixa td,
+    .fluxo-caixa th {
+        padding: 7px 5px;
+    }
+
+    .linha-titulo td {
+        font-size: 16px;
+    }
+
+    .linha-titulo1 td {
+        font-size: 14px;
+    }
+
+    .divBoletimAltenativo,
+    .divBoletimAltenativoGeral {
+        padding: 9px;
+    }
+
+    .div-filtros-boletim-mensal-p {
+        width: 100%;
+        margin: 4px 0;
+    }
+
+    #graficosPizzaSetores canvas {
+        min-width: 0;
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    #graficoPizzaInvestimentos {
+        min-width: 280px;
+    }
+
+    .checkbox {
+        transform: scale(1.3);
+    }
+
+    .filtro-container {
+        width: 100%;
+    }
+
+    .input-filtro {
+        min-width: 100px;
+    }
+}
+
+/* ==========================================
+   ACESSIBILIDADE
+========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+#iconPanel {
+    background-color: #252e3a;
+}
+
+/* SAÍDA – VERMELHO */
+.linha-saida td {
+    background: rgba(244, 63, 94, 0.13);
+    color: black;
+}
+
+/* ENTRADA – VERDE */
+.linha-entrada td {
+    background: rgba(16, 185, 129, 0.13);
+    color: black;
+}
+
+/* CAIXA – AZUL */
+.linha-caixa td {
+    background: rgba(59, 130, 246, 0.13);
+    color: black;
+}
+
+/* ==========================================
+   TABELAS BOLETIM NO CELULAR
+========================================== */
+
+@media (max-width: 750px) {
+
+    .tabelaBoletim, #CheckListDiv, #CheckListDiv2, .divBoletimAltenativoGeral {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .tabelaBoletim table, #CheckListDiv table, #CheckListDiv2 table, .divBoletimAltenativoGeral table {
+        width: 100%;
+        min-width: 0;
+        table-layout: auto;
+        font-size: 11px;
+    }
+
+    .tabelaBoletim th, #CheckListDiv th, #CheckListDiv2 th, .divBoletimAltenativoGeral th {
+        font-size: 10px;
+        padding: 5px 3px;
+        white-space: normal;
+        overflow-wrap: break-word;
+    }
+
+    .tabelaBoletim td, #CheckListDiv td, #CheckListDiv2 td, .divBoletimAltenativoGeral td {
+        font-size: 11px;
+        padding: 5px 3px;
+        overflow-wrap: anywhere;
+    }
+
+    .tabelaBoletim th, .tabelaBoletim td, #CheckListDiv th, #CheckListDiv td, #CheckListDiv2 th, #CheckListDiv2 td, .divBoletimAltenativoGeral th, .divBoletimAltenativoGeral td {
+        line-height: 1.3;
+    }
+
+    .tabelaBoletim input, .tabelaBoletim select, #CheckListDiv input, #CheckListDiv select, #CheckListDiv2 input, #CheckListDiv2 select, .divBoletimAltenativoGeral input, .divBoletimAltenativoGeral select {
+        font-size: 11px;
+        padding: 4px;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .tabelaBoletim button, #CheckListDiv button, #CheckListDiv2 button, .divBoletimAltenativoGeral button {
+        font-size: 11px;
+        padding: 5px;
+    }
+}
+/* ==========================================
+   RECEITAS E DIVERSOS NO CELULAR
+========================================== */
+
+@media (max-width: 750px) {
+
+    #Receitas-container,
+    .tabelaDiversos {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #Receitas-container table,
+    .tabelaDiversos table {
+        width: 100%;
+        min-width: 0;
+        table-layout: auto;
+        font-size: 11px;
+    }
+
+    #Receitas-container th,
+    #Receitas-container td,
+    .tabelaDiversos th,
+    .tabelaDiversos td {
+        padding: 5px 4px;
+        font-size: 11px;
+        line-height: 1.3;
+        white-space: normal;
+        overflow-wrap: break-word;
+    }
+
+    /* Inputs compactos */
+    #Receitas-container input,
+    #Receitas-container select,
+    .tabelaDiversos input,
+    .tabelaDiversos select {
+        min-height: 26px;
+        height: 26px;
+        width: auto;
+        max-width: 100%;
+        min-width: 0;
+        padding: 3px 5px;
+        font-size: 11px;
+        border-radius: 5px;
+        box-shadow: none;
+    }
+
+    /* Campos numéricos */
+    #Receitas-container input[type="number"],
+    .tabelaDiversos input[type="number"] {
+        width: 58px;
+    }
+
+    /* Campos de texto */
+    #Receitas-container input[type="text"],
+    .tabelaDiversos input[type="text"] {
+        width: 100%;
+        min-width: 90px;
+    }
+
+    /* Datas */
+    #Receitas-container input[type="date"],
+    .tabelaDiversos input[type="date"] {
+        width: 115px;
+    }
+
+    /* Checkbox */
+    #Receitas-container input[type="checkbox"],
+    .tabelaDiversos input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        min-height: 16px;
+    }
+
+    /* Botões */
+    #Receitas-container button,
+    .tabelaDiversos button {
+        min-height: 26px;
+        height: 26px;
+        padding: 3px 6px;
+        font-size: 10px;
+        border-radius: 5px;
+    }
+}
+
+@media (max-width: 380px) {
+
+    #Receitas-container th,
+    #Receitas-container td,
+    .tabelaDiversos th,
+    .tabelaDiversos td {
+        padding: 4px 3px;
+        font-size: 10px;
+    }
+
+    #Receitas-container input[type="number"],
+    .tabelaDiversos input[type="number"] {
+        width: 50px;
+    }
+}
