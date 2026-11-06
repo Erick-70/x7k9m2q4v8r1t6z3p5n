@@ -4267,7 +4267,7 @@ function historicoCartoes(){
     novaLinha.style.color = 'black';
       
     novaLinha.innerHTML = `
-        <td><label style="background-color: rgba(200, 200, 200, 0.7); padding: 1px;">${lista[i]}</label></td>
+        <td><label style=" padding: 1px;">${lista[i]}</label></td>
     `;
     tabelaCorpo.appendChild(novaLinha);
   }
@@ -10804,6 +10804,8 @@ document.addEventListener("input", (evento) => {
 
     if (!campo.matches("input, textarea, select")) return;
 
+    if (campo.closest(".Icone10")) return;
+
     // Ignora todos os campos dentro de .filtro-container
     if (campo.closest(".filtro-container")) return;
 
@@ -10831,6 +10833,8 @@ document.addEventListener("change", (evento) => {
 
     if (!campo.matches("input, textarea, select")) return;
 
+    if (campo.closest(".Icone10")) return;
+    
     // Ignora todos os campos dentro de .filtro-container
     if (campo.closest(".filtro-container")) return;
 
