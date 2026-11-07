@@ -1,3 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+}
+
+h1, h2, h3 {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+button {
+    font-family: inherit;
+    font-weight: 600;
+}
+
+
 .aviso-jsonbin {
     position: fixed;
     bottom: 20px;
@@ -132,7 +152,6 @@
 .fluxo-caixa {
     width: 100%;
     border-collapse: collapse;
-    font-family: Arial, sans-serif;
     font-size: 17px;
 }
 
@@ -516,11 +535,6 @@ input[type="number"]::-webkit-outer-spin-button {
   margin: 0;
 }
 
-/* Para Firefox */
-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
 canvas {
     width: 100% !important;
     height: auto !important;
@@ -757,7 +771,6 @@ button {
 @media (min-width: 1700px) {
     body, #expressao {
         margin: 0;
-        font-family: Arial, sans-serif;
         font-size: 20px;
     }
     .descricao {
@@ -800,7 +813,6 @@ button {
 @media (max-width: 1699px) {
     body, #expressao {
         margin: 0;
-        font-family: Arial, sans-serif;
         font-size: 15px;
     }
     .descricao {
@@ -848,7 +860,6 @@ button {
 @media (max-width: 999px) {
     body {
         margin: 0;
-        font-family: Arial, sans-serif;
         font-size: 15px;
     }
     body,  .valor-input, .valor-total, .data-input, .descricao-input, .dia-input, .parcela-input, .remover-linha, .remover-linha-toast, #expressao{
@@ -990,7 +1001,6 @@ body {
     margin: 0;
     background: var(--bg-principal);
     color: var(--texto);
-    font-family: Arial, sans-serif;
     font-size: 15px;
     line-height: 1.5;
 }
@@ -1494,16 +1504,14 @@ canvas {
    BOTÃO REMOVER
 ========================================== */
 
-.remover-linha,
-.remover-linha-toast {
-    background: rgba(244, 63, 94, 0.12);
-    color: #fda4af;
-    border: 1px solid rgba(244, 63, 94, 0.3);
+.remover-linha, .remover-linha-toast {
+    background: rgba(99, 102, 241, 0.12);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
-.remover-linha:hover,
-.remover-linha-toast:hover {
-    background: #be123c;
+.remover-linha:hover, .remover-linha-toast:hover {
+    background: #4338ca;
     color: white;
 }
 
@@ -1524,8 +1532,7 @@ canvas {
    COFRINHO
 ========================================== */
 
-.cofrinho,
-.cofrinho-metas {
+.cofrinho, .cofrinho-metas {
     background: var(--bg-card);
     border: 1px solid var(--borda);
     border-radius: var(--radius);
@@ -1803,6 +1810,21 @@ textarea {
     background-color: #252e3a;
 }
 
+.icon {
+    background-color: #d8d8d8;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.icon:hover {
+    background-color: #037beb;
+}
+
 /* SAÍDA – VERMELHO */
 .linha-saida td {
     background: rgba(244, 63, 94, 0.13);
@@ -1811,6 +1833,19 @@ textarea {
 
 /* ENTRADA – VERDE */
 .linha-entrada td {
+    background: rgba(16, 185, 129, 0.13);
+    color: black;
+}
+
+
+/* SAÍDA – VERMELHO */
+tr[movimentacao="movimentacao-saida-altenativo"] td {
+    background: rgba(244, 63, 94, 0.13);
+    color: black;
+}
+
+/* ENTRADA – VERDE */
+tr[movimentacao="movimentacao-entrada-altenativo"] td {
     background: rgba(16, 185, 129, 0.13);
     color: black;
 }
@@ -1971,4 +2006,13 @@ textarea {
     .tabelaDiversos input[type="number"] {
         width: 50px;
     }
+}
+
+.data-input {
+    width: 170px;
+}
+
+td:has(.valor-input), td:has(.data-input), td:has(.parcela-input), td:has(.valor-total), td:has(.remover-linha) {
+    text-align: center;
+    vertical-align: middle;  
 }
