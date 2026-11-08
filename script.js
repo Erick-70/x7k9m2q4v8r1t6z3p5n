@@ -10802,7 +10802,7 @@ function montarDicionario() {
 document.addEventListener("input", (evento) => {
     const campo = evento.target;
 
-    if (!campo.matches("input, textarea, select")) return;
+    if (!campo.matches("input, select")) return;
 
     if (campo.closest(".Icone10")) return;
 
