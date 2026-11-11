@@ -1,3 +1,10 @@
+document.getElementById('controle-financeiro').addEventListener('click', 
+    () => {
+        window.open('controle_financeiro.html', '_blank');
+    }
+);
+
+
 function detalharDRE() {
     let tabela = document.getElementById('dre-container');
     let linhas = tabela.getElementsByClassName('linha-detalhes');
