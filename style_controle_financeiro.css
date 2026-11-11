@@ -2934,3 +2934,18 @@ nav {
 .analises-ano-container select:focus {
     border-color: var(--destaque, #4b8de8);
 }
+
+#botaoSalvar.pendente {
+    background: #dc3545;
+    color: white;
+    animation: piscarSalvar 1s infinite;
+}
+
+@keyframes piscarSalvar {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
