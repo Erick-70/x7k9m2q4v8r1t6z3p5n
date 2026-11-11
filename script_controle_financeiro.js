@@ -1,9 +1,22 @@
+const JSONBIN_ID = "6af488c3ac6210605a7ffc4a";
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
+
+const CHAVE_PENDENCIA = "progressoPendenteJSONBin";
+const CHAVE_ULTIMO_SALVO = "progressoSalvo";
+
 const botoesAbas = document.querySelectorAll(".aba");
 const conteudos = document.querySelectorAll(".conteudo-aba");
 
 botoesAbas.forEach(botao => {
     botao.addEventListener("click", () => {
+
         const abaSelecionada = botao.dataset.aba;
+
+        // Se não tiver data-aba, não troca de aba
+        if (!abaSelecionada) {
+            salvarDados(); // Sua função de salvar
+            return;
+        }
 
         // Remove a classe ativa de todas as abas
         botoesAbas.forEach(item => item.classList.remove("ativa"));
@@ -21,7 +34,8 @@ botoesAbas.forEach(botao => {
                 break;
 
             case "fluxo-caixa":
-                renderizarFluxoCaixa();
+                carregarAnosFluxo();
+                console.log("Fluxo de Caixa");
                 break;
 
             case "analises":
@@ -44,6 +58,9 @@ botoesAbas.forEach(botao => {
 });
 
 ////// ADICIONAR MOVIMENTACAO
+document.getElementById("Orcamento-Pessoal").addEventListener("click", () => {
+    window.open('orcamento.html', '_blank');
+})
 
 
 /* ==========================================
@@ -68,27 +85,189 @@ let movimentacoes = [];
    ARMAZENAMENTO
 ========================================== */
 
-function carregarMovimentacoes() {
-    try {
-        movimentacoes = JSON.parse(
-            localStorage.getItem(CHAVE_MOVIMENTACOES)
-        ) || [];
-    } catch {
-        movimentacoes = [];
+async function carregarMovimentacoes() {
+
+    const pendencia = localStorage.getItem(CHAVE_PENDENCIA);
+
+    // 1. Se existe alteração local pendente, utiliza o LocalStorage
+    if (pendencia) {
+
+        try {
+            movimentacoes = JSON.parse(
+                localStorage.getItem(CHAVE_MOVIMENTACOES)
+            ) || [];
+
+        } catch {
+            movimentacoes = [];
+        }
+
+        indicarAlteracao();
+
+        console.log("Carregando dados locais pendentes.");
+
+    } else {
+
+        // 2. Sem pendências, busca os dados mais recentes no JSONBin
+        try {
+
+            const response = await fetch(
+                `${JSONBIN_URL}/latest`,
+                {
+                    method: "GET",
+                    headers: {
+                        "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const resultado = await response.json();
+
+            movimentacoes = resultado.record || [];
+
+            // Atualiza a cópia local com os dados remotos
+            localStorage.setItem(
+                CHAVE_MOVIMENTACOES,
+                JSON.stringify(movimentacoes)
+            );
+
+            localStorage.setItem(
+                CHAVE_ULTIMO_SALVO,
+                JSON.stringify(movimentacoes)
+            );
+
+            indicarSalvo();
+
+            console.log("Dados carregados do JSONBin.");
+
+        } catch (erro) {
+
+            console.error("Erro ao carregar JSONBin:", erro);
+
+            // Em caso de falha, utiliza a última cópia local disponível
+            try {
+                movimentacoes = JSON.parse(
+                    localStorage.getItem(CHAVE_MOVIMENTACOES)
+                ) || [];
+            } catch {
+                movimentacoes = [];
+            }
+
+            document.getElementById("statusMovimentacoes").textContent =
+                "Falha ao consultar JSONBin. Utilizando cópia local.";
+
+        }
     }
 
+    // 3. Atualiza a interface
     renderizarMovimentacoes();
+
     dadosFinanceiros = gerarDicionarioFinanceiro();
+    inicializarDashboard();
 }
 
 function salvarMovimentacoes() {
+
     localStorage.setItem(
         CHAVE_MOVIMENTACOES,
         JSON.stringify(movimentacoes)
     );
 
-    document.getElementById("statusMovimentacoes").textContent = "Dados salvos automaticamente.";
     dadosFinanceiros = gerarDicionarioFinanceiro();
+
+    indicarAlteracao();
+}
+
+function indicarAlteracao() {
+    localStorage.setItem(CHAVE_PENDENCIA, Date.now().toString());
+
+    const botao = document.getElementById("botaoSalvar");
+
+    botao.textContent = "FALTA SALVAR";
+    botao.classList.add("pendente");
+}
+
+function indicarSalvo() {
+    const botao = document.getElementById("botaoSalvar");
+
+    botao.textContent = "SALVAR";
+    botao.classList.remove("pendente");
+
+    document.getElementById("statusMovimentacoes").textContent =
+        "Dados sincronizados com sucesso.";
+}
+
+function indicarErro() {
+    const botao = document.getElementById("botaoSalvar");
+
+    botao.textContent = "FALTA SALVAR";
+    botao.classList.add("pendente");
+
+    document.getElementById("statusMovimentacoes").textContent =
+        "Erro ao sincronizar. Existem dados pendentes.";
+}
+
+async function salvarNoJSONBin(dados) {
+
+    const pendenciaAtual = localStorage.getItem(CHAVE_PENDENCIA);
+
+    try {
+        const response = await fetch(JSONBIN_URL, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+            },
+            body: JSON.stringify(dados)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        // Só remove a pendência se nenhuma alteração nova ocorreu
+        if (
+            localStorage.getItem(CHAVE_PENDENCIA) === pendenciaAtual
+        ) {
+            localStorage.removeItem(CHAVE_PENDENCIA);
+
+            localStorage.setItem(
+                CHAVE_ULTIMO_SALVO,
+                JSON.stringify(dados)
+            );
+
+            localStorage.setItem(
+                CHAVE_MOVIMENTACOES,
+                JSON.stringify(dados)
+            );
+
+            indicarSalvo();
+        }
+
+        console.log("Sincronização com JSONBin concluída.");
+
+        return true;
+
+    } catch (erro) {
+
+        indicarErro();
+
+        console.error("Falha ao salvar no JSONBin:", erro);
+
+        return false;
+    }
+}
+
+async function salvarDados() {
+
+    const dados = JSON.parse(
+        localStorage.getItem(CHAVE_MOVIMENTACOES)
+    ) || [];
+
+    return await salvarNoJSONBin(dados);
 }
 
 
@@ -5888,14 +6067,6 @@ function inicializarDashboard() {
     atualizarDashboard();
 }
 
-document.addEventListener("DOMContentLoaded", inicializarDashboard);
-
-
-
-/* ==========================================
-   INICIALIZAÇÃO
-========================================== */
-
-carregarAnosFluxo();
+window.addEventListener("load", carregarMovimentacoes);
 
 
