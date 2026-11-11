@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Financeiro</title>
+
+    <link rel="stylesheet" href="style_controle_financeiro.css">
+</head>
+<body>
+    
+    <nav class="abas" aria-label="Navegação principal">
+        <button class="aba ativa" data-aba="principal">Principal</button>
+        <button class="aba" data-aba="dados">Dados</button>
+        <button class="aba" data-aba="fluxo-caixa">Fluxo de Caixa Anual</button>
+        <button class="aba" data-aba="analises">Análises Estratégicas</button>
+        <button class="aba" data-aba="dre-balanco">DRE's e Balanço Anual</button>
+        <button class="aba" data-aba="boletins">Boletins Mensais</button>
+        <button class="aba" data-aba="rankings">Ranking das Movimentações</button>
+    </nav>
+
+    <main>
+        <!-- Área principal, será desenvolvida posteriormente -->
+        
+        <section class="conteudo-aba ativo" id="principal">
+
+            <div class="dashboard-cabecalho">
+                <div>
+                    <h2 class="titulo-secao">Dashboard Financeiro</h2>
+                    <p class="descricao-secao">
+                        Visão geral das suas movimentações financeiras.
+                    </p>
+                </div>
+
+                <div class="dashboard-filtro">
+                    <label for="dashboardAno">Ano de referência</label>
+                    <select id="dashboardAno"></select>
+                </div>
+            </div>
+
+            <!-- INDICADORES -->
+            <div class="dashboard-indicadores">
+
+                <div class="dashboard-card indicador-entrada">
+                    <div class="indicador-topo">
+                        <span>Total de entradas</span>
+                        <span class="indicador-icone">↗</span>
+                    </div>
+                    <strong id="dashTotalEntradas">R$ 0,00</strong>
+                    <small id="dashMediaEntradas">Média mensal: R$ 0,00</small>
+                </div>
+
+                <div class="dashboard-card indicador-saida">
+                    <div class="indicador-topo">
+                        <span>Total de saídas</span>
+                        <span class="indicador-icone">↘</span>
+                    </div>
+                    <strong id="dashTotalSaidas">R$ 0,00</strong>
+                    <small id="dashMediaSaidas">Média mensal: R$ 0,00</small>
+                </div>
+
+                <div class="dashboard-card indicador-resultado">
+                    <div class="indicador-topo">
+                        <span>Resultado do ano</span>
+                        <span class="indicador-icone">∑</span>
+                    </div>
+                    <strong id="dashResultado">R$ 0,00</strong>
+                    <small id="dashPercentualResultado">0% das entradas</small>
+                </div>
+
+                <div class="dashboard-card indicador-movimentacoes">
+                    <div class="indicador-topo">
+                        <span>Movimentações</span>
+                        <span class="indicador-icone">▤</span>
+                    </div>
+                    <strong id="dashQuantidade">0</strong>
+                    <small id="dashMesesAtivos">0 meses com movimentações</small>
+                </div>
+
+            </div>
+
+            <!-- GRÁFICOS PRINCIPAIS -->
+            <div class="dashboard-secao-titulo">
+                <h3>Visão geral</h3>
+                <span>Comparativo mensal</span>
+            </div>
+
+            <div class="dashboard-graficos dashboard-graficos-principais">
+
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Receitas x Despesas</h3>
+                            <p>Comparativo mensal das entradas e saídas</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area">
+                        <canvas id="graficoReceitasDespesas"></canvas>
+                    </div>
+                </div>
+
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Receitas x Despesas detalhado</h3>
+                            <p>Valores mensais em barras</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area">
+                        <canvas id="graficoBarrasMensais"></canvas>
+                    </div>
+                </div>
+
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Resultado mensal</h3>
+                            <p>Entradas menos saídas</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area">
+                        <canvas id="graficoResultado"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- GRÁFICOS COMPLEMENTARES -->
+            <div class="dashboard-secao-titulo">
+                <h3>Análise financeira</h3>
+                <span>Detalhamento do período</span>
+            </div>
+
+            <div class="dashboard-graficos dashboard-graficos-secundarios">
+
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Composição das saídas</h3>
+                            <p>Distribuição por categoria</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area grafico-area-donut">
+                        <canvas id="graficoComposicao"></canvas>
+                    </div>
+                </div>
+
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Maiores despesas</h3>
+                            <p>Descrições com maior valor acumulado</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area">
+                        <canvas id="graficoMaioresDespesas"></canvas>
+                    </div>
+                </div>
+
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Resultado acumulado</h3>
+                            <p>Evolução do saldo ao longo do ano</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area">
+                        <canvas id="graficoAcumulado"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ANÁLISE DE ENTRADAS -->
+            <div class="dashboard-secao-titulo">
+                <h3>Análise de entradas</h3>
+                <span>Detalhamento das fontes de receita</span>
+            </div>
+
+            <div class="dashboard-graficos dashboard-graficos-secundarios">
+
+                <!-- COMPOSIÇÃO DAS ENTRADAS -->
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Composição das entradas</h3>
+                            <p>Distribuição por categoria</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area grafico-area-donut">
+                        <canvas id="graficoComposicaoEntradas"></canvas>
+                    </div>
+                </div>
+
+                <!-- MAIORES ENTRADAS -->
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Maiores entradas</h3>
+                            <p>Descrições com maior valor acumulado</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area">
+                        <canvas id="graficoMaioresEntradas"></canvas>
+                    </div>
+                </div>
+
+                <!-- EVOLUÇÃO MENSAL POR TIPO -->
+                <div class="dashboard-card dashboard-grafico-card">
+                    <div class="grafico-cabecalho">
+                        <div>
+                            <h3>Evolução mensal por tipo</h3>
+                            <p>Comparativo mensal das categorias financeiras</p>
+                        </div>
+                    </div>
+                    <div class="grafico-area">
+                        <canvas id="graficoEvolucaoTipos"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RESUMO MENSAL -->
+            <div class="dashboard-secao-titulo">
+                <h3>Resumo mensal</h3>
+                <span>Detalhamento dos 12 meses</span>
+            </div>
+
+            <div class="dashboard-card dashboard-tabela-card">
+                <div class="dashboard-tabela-container">
+                    <table class="dashboard-tabela">
+                        <thead>
+                            <tr>
+                                <th>Mês</th>
+                                <th>Entradas</th>
+                                <th>Saídas</th>
+                                <th>Resultado</th>
+                                <th>Margem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardTabelaCorpo"></tbody>
+                        <tfoot id="dashboardTabelaRodape"></tfoot>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="conteudo-aba" id="dados">
+                <div class="dados-header">
+                <div>
+                    <h2>Dados financeiros</h2>
+                    <p>Gerencie suas movimentações financeiras.</p>
+                </div>
+
+                <div class="dados-acoes">
+                    <button class="btn-dados btn-adicionar" onclick="adicionarMovimentacao()">
+                        + Nova movimentação
+                    </button>
+
+                    <button class="btn-dados btn-exportar" onclick="exportarMovimentacoes()">
+                        Exportar Excel
+                    </button>
+
+                    <label class="btn-dados btn-importar" for="arquivoMovimentacoes">
+                        Importar Excel
+                    </label>
+
+                    <input
+                        type="file"
+                        id="arquivoMovimentacoes"
+                        accept=".xlsx,.xls"
+                        hidden
+                        onchange="importarMovimentacoes(event)"
+                    >
+                </div>
+            </div>
+
+            <div class="dados-resumo">
+                <div class="dados-contador">
+                    <span>Movimentações cadastradas</span>
+                    <strong id="totalMovimentacoes">0</strong>
+                </div>
+            </div>
+
+            <div class="dados-controles">
+
+                <div class="dados-filtro-container">
+                    <label for="filtroMovimentacoes">Pesquisar movimentações</label>
+
+                    <input
+                        type="text"
+                        id="filtroMovimentacoes"
+                        placeholder="Ex.: receitas, 15/10, salário"
+                        oninput="renderizarMovimentacoes()"
+                    >
+
+                    <small>
+                        Separe os termos por vírgula. Todos os termos precisam corresponder.
+                    </small>
+                </div>
+
+                <button
+                    type="button"
+                    class="dados-btn-limpar"
+                    onclick="limparFiltroMovimentacoes()"
+                >
+                    Limpar filtro
+                </button>
+
+            </div>
+
+            <div class="dados-resultado-filtro" id="resultadoFiltroMovimentacoes" hidden>
+                <div class="dados-resultado-info">
+                    <span id="contadorFiltroMovimentacoes"></span>
+                    <strong id="somaFiltroMovimentacoes"></strong>
+                </div>
+            </div>
+
+            <div class="dados-tabela-container">
+                <table class="tabela-dados">
+                    <thead>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="corpoMovimentacoes">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="dados-rodape">
+                <span id="statusMovimentacoes">Dados salvos automaticamente.</span>
+            </div>
+        </section>
+
+        
+        <section class="conteudo-aba" id="fluxo-caixa">
+
+            <div class="fluxo-cabecalho">
+                <div>
+                    <h2 class="titulo-secao">Fluxo de Caixa Anual</h2>
+                    <p class="descricao-secao">
+                        Demonstrativo financeiro mensal e anual.
+                    </p>
+                </div>
+
+                <div class="fluxo-controles">
+                    <select id="fluxoAno" class="fluxo-select-ano"></select>
+
+                    <button
+                        type="button"
+                        id="fluxoAlternarDetalhes"
+                        class="fluxo-btn-detalhes"
+                        onclick="alternarDetalhesFluxo()"
+                    >
+                        Ocultar detalhes
+                    </button>
+                </div>
+            </div>
+
+            <div class="fluxo-legenda">
+                <span>Valores em reais (R$)</span>
+                <span>Percentuais calculados sobre as receitas</span>
+            </div>
+
+            <div class="fluxo-filtros-trimestre">
+                <button type="button" class="fluxo-btn-trimestre ativo"
+                    onclick="filtrarTrimestreFluxo(1)">1º Trimestre</button>
+
+                <button type="button" class="fluxo-btn-trimestre"
+                    onclick="filtrarTrimestreFluxo(2)">2º Trimestre</button>
+
+                <button type="button" class="fluxo-btn-trimestre"
+                    onclick="filtrarTrimestreFluxo(3)">3º Trimestre</button>
+
+                <button type="button" class="fluxo-btn-trimestre"
+                    onclick="filtrarTrimestreFluxo(4)">4º Trimestre</button>
+
+                <button type="button" class="fluxo-btn-trimestre"
+                    onclick="filtrarTrimestreFluxo(0)">Anual</button>
+            </div>
+
+            <div class="fluxo-tabela-container" id="fluxoTabelaScroll">
+
+                <table class="fluxo-tabela" id="fluxoTabela">
+
+                    <thead id="fluxoCabecalhoTabela">
+                    </thead>
+
+                    <tbody id="fluxoCorpoTabela">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="fluxo-rodape">
+                <span id="fluxoStatus">
+                    Dados atualizados automaticamente.
+                </span>
+            </div>
+
+        </section>
+
+        <section class="conteudo-aba" id="analises">
+
+            <div class="analises-cabecalho">
+                <div>
+                    <h2 class="titulo-secao">Análises Estratégicas</h2>
+                    <p class="descricao-secao">
+                        Indicadores financeiros, resultados mensais e evolução anual.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="analises-btn-atualizar"
+                    onclick="renderizarAnalises()"
+                >
+                    ↻ Atualizar
+                </button>
+            </div>
+
+            <div class="analises-controles">
+                <div class="analises-ano-container">
+                    <label for="analisesAno">Ano de referência</label>
+                    <select id="analisesAno" onchange="renderizarAnalises()">
+                    </select>
+                </div>
+            </div>
+
+            <div id="analisesConteudo">
+
+                <div class="analises-vazio">
+                    Carregando análises financeiras...
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="conteudo-aba" id="dre-balanco">
+
+            <div class="dre-cabecalho">
+                <div>
+                    <h2 class="titulo-secao">DRE's e Balanço Anual</h2>
+                    <p class="descricao-secao">
+                        Demonstrativos de resultados e indicadores financeiros pessoais.
+                    </p>
+                </div>
+
+                <div class="dre-controles">
+                    <select id="dreAno" class="dre-select-ano"></select>
+                    <button type="button" class="dre-btn-atualizar" onclick="renderizarDREBalanço()">
+                        ↻ Atualizar
+                    </button>
+                </div>
+            </div>
+
+            <div id="dreConteudo">
+                <div class="dre-vazio">Carregando demonstrativos...</div>
+            </div>
+
+        </section>
+
+        
+        <section class="conteudo-aba" id="boletins">
+
+            <h2 class="titulo-secao">Boletins Mensais</h2>
+            <p class="descricao-secao">
+                Consulte o histórico financeiro mensal, com saldo acumulado e pesquisa por descrição.
+            </p>
+
+            <div class="boletins-controles">
+
+                <div class="boletins-ano-container">
+                    <label for="boletinsAno">Ano</label>
+                    <select id="boletinsAno"></select>
+                </div>
+
+                <div class="boletins-filtro-container">
+                    <label for="boletinsFiltro">Pesquisar movimentações</label>
+                    <input
+                        type="text"
+                        id="boletinsFiltro"
+                        placeholder="Ex.: Pastel, Claro, Exequibilidade..."
+                        autocomplete="off"
+                    >
+                    <small>Separe várias descrições por vírgula, ponto e vírgula ou quebra de linha.</small>
+                </div>
+
+                <button
+                    type="button"
+                    id="boletinsLimparFiltro"
+                    class="boletins-btn-limpar"
+                >
+                    Limpar pesquisa
+                </button>
+
+            </div>
+
+            <div id="boletinsResultadoFiltro" class="boletins-resultado-filtro" hidden></div>
+
+            <div id="boletinsPlanilhas" class="boletins-planilhas"></div>
+
+        </section>
+
+        
+        <section class="conteudo-aba" id="rankings">
+
+            <h2 class="titulo-secao">Ranking das Movimentações</h2>
+
+            <p class="descricao-secao">
+                Ranking geral das movimentações, ordenado pelo valor total acumulado.
+            </p>
+
+            <div class="ranking-controles">
+                <input
+                    type="text"
+                    id="rankingFiltro"
+                    placeholder="Pesquisar por descrição..."
+                >
+
+                <details class="ranking-filtro-tipos">
+                    <summary>Filtrar por tipo</summary>
+                    <div id="rankingFiltrosTipos"></div>
+                </details>
+
+                <span id="rankingContagem"></span>
+            </div>
+
+            <div class="ranking-tabela-container">
+
+                <table class="ranking-tabela">
+
+                    <thead>
+                        <tr>
+                            <th>Nº</th>
+                            <th>Descrição</th>
+                            <th>Tipo</th>
+                            <th>Total</th>
+                            <th>Aparece</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="rankingTabelaCorpo">
+
+                        <tr>
+                            <td colspan="5" class="ranking-vazio">
+                                Carregando movimentações...
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="script_controle_financeiro.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
