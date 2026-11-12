@@ -7,14 +7,26 @@ const CHAVE_ULTIMO_SALVO = "progressoSalvo";
 const botoesAbas = document.querySelectorAll(".aba");
 const conteudos = document.querySelectorAll(".conteudo-aba");
 
+
 botoesAbas.forEach(botao => {
     botao.addEventListener("click", () => {
+
+        // BOTÃO CARREGAR JSBIN
+        if (botao.id === "carregarJsbin") {
+            carregarDoJsbin();
+            return;
+        }
+
+        // BOTÃO SALVAR
+        if (botao.id === "botaoSalvar") {
+            salvarDados();
+            return;
+        }
 
         const abaSelecionada = botao.dataset.aba;
 
         // Se não tiver data-aba, não troca de aba
         if (!abaSelecionada) {
-            salvarDados(); // Sua função de salvar
             return;
         }
 
@@ -57,10 +69,118 @@ botoesAbas.forEach(botao => {
     });
 });
 
+
 ////// ADICIONAR MOVIMENTACAO
 document.getElementById("Orcamento-Pessoal").addEventListener("click", () => {
     window.open('orcamento.html', '_blank');
 })
+
+
+
+async function carregarDoJsbin() {
+
+    // Preserva os dados atuais caso todas as tentativas falhem
+    const movimentacoesAntes = movimentacoes;
+
+    const status = document.getElementById("statusMovimentacoes");
+
+    try {
+
+        // 1. Tenta carregar diretamente do JSONBin
+        const response = await fetch(
+            `${JSONBIN_URL}/latest`,
+            {
+                method: "GET",
+                headers: {
+                    "X-Master-Key": "$2a$10$R5vvSGzscaFNnn8f5KeA4.G1UwBcAw83JNCsaHJ/CMGCMgIVP2Oxe"
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        const resultado = await response.json();
+
+        if (!Array.isArray(resultado.record)) {
+            throw new Error("Dados inválidos no JSONBin.");
+        }
+
+        // Atualiza os dados em memória
+        movimentacoes = resultado.record;
+
+        // Atualiza a cópia local
+        localStorage.setItem(
+            CHAVE_MOVIMENTACOES,
+            JSON.stringify(movimentacoes)
+        );
+
+        localStorage.setItem(
+            CHAVE_ULTIMO_SALVO,
+            JSON.stringify(movimentacoes)
+        );
+
+        // Remove a indicação de alterações pendentes
+        localStorage.removeItem(CHAVE_PENDENCIA);
+
+        indicarSalvo();
+
+        console.log("Dados carregados diretamente do JSONBin.");
+
+        if (status) {
+            status.textContent = "Dados carregados do JSONBin.";
+        }
+
+    } catch (erroJsbin) {
+
+        console.error("Erro ao carregar JSONBin:", erroJsbin);
+
+        // 2. Se falhar, tenta recuperar do LocalStorage
+        try {
+
+            const dadosLocais = JSON.parse(
+                localStorage.getItem(CHAVE_MOVIMENTACOES)
+            );
+
+            if (!Array.isArray(dadosLocais)) {
+                throw new Error("Cópia local inválida ou inexistente.");
+            }
+
+            movimentacoes = dadosLocais;
+
+            console.log("Dados recuperados do LocalStorage.");
+
+            if (status) {
+                status.textContent =
+                    "JSONBin indisponível. Dados carregados do LocalStorage.";
+            }
+
+        } catch (erroLocal) {
+
+            // 3. Se tudo falhar, mantém os dados anteriores
+            movimentacoes = movimentacoesAntes;
+
+            console.error("Falha ao recuperar dados locais:", erroLocal);
+
+            if (status) {
+                status.textContent =
+                    "Falha no carregamento. Dados atuais preservados.";
+            }
+
+            return false;
+        }
+    }
+
+    // Atualiza a interface somente quando houve carregamento válido
+    renderizarMovimentacoes();
+
+    dadosFinanceiros = gerarDicionarioFinanceiro();
+
+    inicializarDashboard();
+
+    return true;
+}
 
 
 /* ==========================================
@@ -3446,7 +3566,9 @@ function gerarTabelaBalancoDRE(titulo, itens, totalGrupo, classe) {
 }
 
 
+
 function gerarBalancoAnualDRE(ano) {
+
     const dados = movimentacoes.filter(m => {
         if (!m.data) return false;
 
@@ -3475,38 +3597,58 @@ function gerarBalancoAnualDRE(ano) {
         saidasNaoOperacionais: {}
     };
 
+    function adicionarAoGrupo(grupo, tipo, descricao, valor) {
+        const chave = `${tipo}|||${descricao}`;
+
+        if (!grupo[chave]) {
+            grupo[chave] = {
+                descricao,
+                valor: 0,
+                tipo
+            };
+        }
+
+        grupo[chave].valor += valor;
+    }
+
     dados.forEach(m => {
+
         const tipo = normalizar(m.tipo);
         const descricao = String(m.descricao || "Sem descrição").trim();
         const valor = Math.abs(Number(m.valor) || 0);
 
         if (tipo === "RECEITAS") {
-            grupos.entradasOperacionais[descricao] =
-                (grupos.entradasOperacionais[descricao] || 0) + valor;
+
+            adicionarAoGrupo(grupos.entradasOperacionais, tipo, descricao, valor);
 
         } else if (
             tipo === "RECEITAS NAO-OPER." ||
             tipo === "RECEITAS NAO OPER."
         ) {
-            grupos.entradasNaoOperacionais[descricao] =
-                (grupos.entradasNaoOperacionais[descricao] || 0) + valor;
+
+            adicionarAoGrupo(grupos.entradasNaoOperacionais, tipo, descricao, valor);
 
         } else if (tipo === "DESPESAS" || tipo === "CARTOES") {
-            grupos.saidasOperacionais[descricao] =
-                (grupos.saidasOperacionais[descricao] || 0) + valor;
+
+            adicionarAoGrupo(grupos.saidasOperacionais, tipo, descricao, valor);
 
         } else if (
             tipo === "INVESTIMENTOS" ||
             tipo === "SAIDAS NAO-OPER." ||
             tipo === "SAIDAS NAO OPER."
         ) {
-            grupos.saidasNaoOperacionais[descricao] =
-                (grupos.saidasNaoOperacionais[descricao] || 0) + valor;
+
+            adicionarAoGrupo(grupos.saidasNaoOperacionais, tipo, descricao, valor);
+
         }
+
     });
 
-    const somarGrupo = grupo =>
-        Object.values(grupo).reduce((total, valor) => total + valor, 0);
+    /* ==========================================
+       TOTAIS
+    ========================================== */
+
+    const somarGrupo = grupo => Object.values(grupo).reduce((total, item) => total + item.valor, 0);
 
     const totalEntradasOperacionais =
         somarGrupo(grupos.entradasOperacionais);
@@ -3526,15 +3668,26 @@ function gerarBalancoAnualDRE(ano) {
     const totalSaidas =
         totalSaidasOperacionais + totalSaidasNaoOperacionais;
 
-    const patrimonioLiquido = totalEntradas - totalSaidas;
+    const patrimonioLiquido = Math.abs(totalEntradas - totalSaidas);
 
-    const percentual = valor =>
-        totalEntradas > 0
-            ? (valor / totalEntradas * 100).toLocaleString("pt-BR", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }) + "%"
-            : "0,00%";
+    /* Maior total utilizado para equilibrar os dois lados */
+
+    const totalReferencia = Math.max(totalEntradas, totalSaidas);
+
+    /* ==========================================
+       PERCENTUAIS
+    ========================================== */
+
+    const percentual = (valor, base) => {
+
+        if (!base || base <= 0) return "0,00%";
+
+        return (valor / base * 100).toLocaleString("pt-BR", {
+            minimumFractionDigits: 3,
+            maximumFractionDigits: 3
+        }) + "%";
+
+    };
 
     const escapar = texto => String(texto)
         .replace(/&/g, "&amp;")
@@ -3544,11 +3697,40 @@ function gerarBalancoAnualDRE(ano) {
         .replace(/'/g, "&#039;");
 
     function organizarItens(grupo) {
-        return Object.entries(grupo)
-            .sort((a, b) => b[1] - a[1]);
+
+        return Object.values(grupo)
+            .sort((a, b) => b.valor - a.valor)
+            .map(item => [
+                item.descricao,
+                item.valor,
+                item.tipo
+            ]);
+
     }
 
-    function gerarCelulasDetalhe(item) {
+    /* ==========================================
+       CÉLULAS DOS DETALHAMENTOS
+    ========================================== */
+
+    function obterClasseTipoBalanco(tipo) {
+
+        const classes = {
+            "RECEITAS": "tipo-receitas",
+            "DESPESAS": "tipo-despesas",
+            "CARTOES": "tipo-cartoes",
+            "INVESTIMENTOS": "tipo-investimentos",
+            "RECEITAS NAO-OPER.": "tipo-receitas-nao-oper",
+            "RECEITAS NAO OPER.": "tipo-receitas-nao-oper",
+            "SAIDAS NAO-OPER.": "tipo-saidas-nao-oper",
+            "SAIDAS NAO OPER.": "tipo-saidas-nao-oper"
+        };
+
+        return classes[tipo] || "";
+
+    }
+
+    function gerarCelulasDetalhe(item, totalGrupo, indice) {
+
         if (!item) {
             return `
                 <td></td>
@@ -3557,43 +3739,107 @@ function gerarBalancoAnualDRE(ano) {
             `;
         }
 
-        const [descricao, valor] = item;
+        const [descricao, valor, tipo] = item;
+        const classe = obterClasseTipoBalanco(tipo);
 
         return `
-            <td>${escapar(descricao)}</td>
-            <td>${formatarValorDRE(valor)}</td>
-            <td>${percentual(valor)}</td>
+            <td class="${classe}">
+                ${indice + 1} - ${escapar(descricao)}
+            </td>
+            <td class="${classe}">${formatarValorDRE(valor)}</td>
+            <td class="${classe}">${percentual(valor, totalGrupo)}</td>
         `;
     }
 
-    function gerarLinhaPareada(entrada, saida) {
+    function gerarLinhaPareada(
+        entrada,
+        saida,
+        totalGrupoEntrada,
+        totalGrupoSaida,
+        classeEntrada,
+        classeSaida,
+        indice
+    ) {
+
         return `
             <tr class="balanco-detalhe">
-                ${gerarCelulasDetalhe(entrada)}
-                ${gerarCelulasDetalhe(saida)}
+
+                ${gerarCelulasDetalhe(
+                    entrada,
+                    totalGrupoEntrada,
+                    indice
+                )}
+
+                ${gerarCelulasDetalhe(
+                    saida,
+                    totalGrupoSaida,
+                    indice
+                )}
+
             </tr>
         `;
     }
 
-    function gerarLinhaTitulo(entrada, saida) {
+    /* ==========================================
+       TÍTULOS DOS GRUPOS COM VALOR E PERCENTUAL
+    ========================================== */
+
+    function gerarLinhaTitulo(
+        entrada,
+        valorEntrada,
+        saida,
+        valorSaida
+    ) {
+
+        const classeEntrada = entrada.includes("NÃO OPERACIONAIS")
+            ? "balanco-entrada-nao-operacional"
+            : "balanco-entrada-operacional";
+
+        const classeSaida = saida.includes("NÃO OPERACIONAIS")
+            ? "balanco-saida-nao-operacional"
+            : "balanco-saida-operacional";
+
         return `
-            <tr class="balanco-subtitulo">
-                <td colspan="3">${entrada}</td>
-                <td colspan="3">${saida}</td>
+            <tr class="balanco-subtitulo ${classeEntrada} ${classeSaida}">
+
+                <td>${entrada}</td>
+                <td>${formatarValorDRE(valorEntrada)}</td>
+                <td>${percentual(valorEntrada, totalReferencia)}</td>
+
+                <td>${saida}</td>
+                <td>${formatarValorDRE(valorSaida)}</td>
+                <td>${percentual(valorSaida, totalReferencia)}</td>
+
             </tr>
         `;
+
     }
 
-    function gerarLinhaTotal(entrada, valorEntrada, saida, valorSaida) {
+    /* ==========================================
+       LINHA DOS TOTAIS GERAIS
+    ========================================== */
+
+    function gerarLinhaTotal() {
+
         return `
             <tr class="balanco-total">
-                <td colspan="2">${entrada}</td>
-                <td>${formatarValorDRE(valorEntrada)}</td>
-                <td colspan="2">${saida}</td>
-                <td>${formatarValorDRE(valorSaida)}</td>
+
+                <td>Total das Entradas</td>
+                <td>${formatarValorDRE(totalEntradas)}</td>
+                <td>${percentual(totalEntradas, totalEntradas)}</td>
+
+                <td>Total das Saídas</td>
+                <td>${formatarValorDRE(totalSaidas)}</td>
+                <td>${percentual(totalSaidas, totalSaidas)}</td>
+
             </tr>
         `;
+
     }
+
+    /* ==========================================
+       ORGANIZAR GRUPOS
+    ========================================== */
 
     const entradasOp = organizarItens(grupos.entradasOperacionais);
     const saidasOp = organizarItens(grupos.saidasOperacionais);
@@ -3603,39 +3849,37 @@ function gerarBalancoAnualDRE(ano) {
 
     let html = `
         <div class="balanco-card">
+
             <div class="balanco-card-titulo">
                 Balanço Financeiro Pessoal Anual
             </div>
 
             <div class="dre-tabela-container">
+
                 <table class="balanco-tabela balanco-tabela-dupla">
+
                     <thead>
                         <tr>
                             <th colspan="3">ENTRADAS</th>
                             <th colspan="3">SAÍDAS</th>
                         </tr>
                     </thead>
+
                     <tbody>
 
-                        ${gerarLinhaTotal(
-                            "Total das Entradas",
-                            totalEntradas,
-                            "Total das Saídas",
-                            totalSaidas
-                        )}
+                        ${gerarLinhaTotal()}
 
                         ${gerarLinhaTitulo(
                             "ENTRADAS OPERACIONAIS",
-                            "SAÍDAS OPERACIONAIS"
+                            totalEntradasOperacionais,
+                            "SAÍDAS OPERACIONAIS",
+                            totalSaidasOperacionais
                         )}
-
-                        <tr class="balanco-total">
-                            <td colspan="2">Total Operacional</td>
-                            <td>${formatarValorDRE(totalEntradasOperacionais)}</td>
-                            <td colspan="2">Total Operacional</td>
-                            <td>${formatarValorDRE(totalSaidasOperacionais)}</td>
-                        </tr>
     `;
+
+    /* ==========================================
+       ENTRADAS E SAÍDAS OPERACIONAIS
+    ========================================== */
 
     const quantidadeOperacional = Math.max(
         entradasOp.length,
@@ -3643,25 +3887,31 @@ function gerarBalancoAnualDRE(ano) {
     );
 
     for (let i = 0; i < quantidadeOperacional; i++) {
+
         html += gerarLinhaPareada(
             entradasOp[i],
-            saidasOp[i]
+            saidasOp[i],
+            totalEntradasOperacionais,
+            totalSaidasOperacionais,
+            null,
+            null,
+            i
         );
+
     }
 
     html += `
                         ${gerarLinhaTitulo(
                             "ENTRADAS NÃO OPERACIONAIS",
-                            "SAÍDAS NÃO OPERACIONAIS"
+                            totalEntradasNaoOperacionais,
+                            "SAÍDAS NÃO OPERACIONAIS",
+                            totalSaidasNaoOperacionais
                         )}
-
-                        <tr class="balanco-total">
-                            <td colspan="2">Total Não Operacional</td>
-                            <td>${formatarValorDRE(totalEntradasNaoOperacionais)}</td>
-                            <td colspan="2">Total Não Operacional</td>
-                            <td>${formatarValorDRE(totalSaidasNaoOperacionais)}</td>
-                        </tr>
     `;
+
+    /* ==========================================
+       ENTRADAS E SAÍDAS NÃO OPERACIONAIS
+    ========================================== */
 
     const quantidadeNaoOperacional = Math.max(
         entradasNaoOp.length,
@@ -3669,33 +3919,70 @@ function gerarBalancoAnualDRE(ano) {
     );
 
     for (let i = 0; i < quantidadeNaoOperacional; i++) {
+
         html += gerarLinhaPareada(
             entradasNaoOp[i],
-            saidasNaoOp[i]
+            saidasNaoOp[i],
+            totalEntradasNaoOperacionais,
+            totalSaidasNaoOperacionais,
+            null,
+            null,
+            i
         );
+
+    }
+
+    /* ==========================================
+       PATRIMÔNIO LÍQUIDO
+    ========================================== */
+
+    if (patrimonioLiquido > 0) {
+
+        const patrimonioNaEntrada = totalEntradas < totalSaidas;
+        const classePatrimonio = "positivo";
+
+        html += `
+            <tr class="balanco-total balanco-patrimonio-linha">
+
+                ${patrimonioNaEntrada ? `
+                    <td colspan="1">Patrimônio Líquido</td>
+                    <td>${formatarValorDRE(patrimonioLiquido)}</td>
+                    <td class="${classePatrimonio}">
+                        ${percentual(patrimonioLiquido, totalReferencia)}
+                    </td>
+                ` : `
+                    <td colspan="3"></td>
+                `}
+
+                ${!patrimonioNaEntrada ? `
+                    <td>Patrimônio Líquido</td>
+                    <td>${formatarValorDRE(patrimonioLiquido)}</td>
+                    <td class="${classePatrimonio}">
+                        ${percentual(patrimonioLiquido, totalReferencia)}
+                    </td>
+                ` : `
+                    <td colspan="3"></td>
+                `}
+
+            </tr>
+        `;
+
     }
 
     html += `
-                        <tr class="balanco-total balanco-patrimonio-linha">
-                            <td colspan="2">Patrimônio Líquido</td>
-                            <td class="${patrimonioLiquido >= 0 ? 'positivo' : 'negativo'}">
-                                ${formatarValorDRE(patrimonioLiquido)}
-                            </td>
-
-                            <td colspan="2">Patrimônio Líquido</td>
-                            <td class="${patrimonioLiquido >= 0 ? 'positivo' : 'negativo'}">
-                                ${formatarValorDRE(patrimonioLiquido)}
-                            </td>
-                        </tr>
-
                     </tbody>
+
                 </table>
+
             </div>
+
         </div>
     `;
 
     return html;
+
 }
+
 
 
 /* =========================================
@@ -4284,6 +4571,78 @@ function correspondeFiltroBoletim(descricao, filtros) {
    RENDERIZAR BOLETINS
 ========================================== */
 
+function inicializarFiltrosTiposBoletins() {
+
+    const container = document.getElementById("boletinsFiltrosTipos");
+
+    if (!container || container.dataset.inicializado === "true") return;
+
+    const tipos = [
+        "RECEITAS",
+        "CARTÕES",
+        "INVESTIMENTOS",
+        "DESPESAS",
+        "RECEITAS NÃO-OPER.",
+        "SAÍDAS NÃO-OPER."
+    ];
+
+    container.innerHTML = `
+        <label>
+            <input type="checkbox" id="boletinsSelecionarTodos" checked>
+            Todos os tipos
+        </label>
+
+        <hr>
+
+        ${tipos.map((tipo, index) => `
+            <label>
+                <input
+                    type="checkbox"
+                    class="boletins-tipo-checkbox"
+                    value="${tipo}"
+                    checked
+                    id="boletinsTipo${index}"
+                >
+                ${tipo}
+            </label>
+        `).join("")}
+    `;
+
+    container.dataset.inicializado = "true";
+
+    container.addEventListener("change", function(e) {
+
+        if (e.target.id === "boletinsSelecionarTodos") {
+
+            container.querySelectorAll(".boletins-tipo-checkbox")
+                .forEach(cb => cb.checked = e.target.checked);
+
+        } else if (e.target.classList.contains("boletins-tipo-checkbox")) {
+
+            const checkboxes = [
+                ...container.querySelectorAll(".boletins-tipo-checkbox")
+            ];
+
+            document.getElementById("boletinsSelecionarTodos").checked =
+                checkboxes.every(cb => cb.checked);
+
+        }
+
+        renderizarBoletins();
+
+    });
+
+}
+
+function obterTiposSelecionadosBoletins() {
+
+    return [
+        ...document.querySelectorAll(".boletins-tipo-checkbox:checked")
+    ].map(cb => cb.value);
+
+}
+
+
 function renderizarBoletins() {
 
     const seletorAno = document.getElementById("boletinsAno");
@@ -4299,8 +4658,13 @@ function renderizarBoletins() {
 
     const ano = Number(seletorAno.value);
     const filtros = obterFiltrosBoletins();
+    const tiposSelecionados = obterTiposSelecionadosBoletins();
 
-    const emPesquisa = filtros.length > 0;
+    const totalTipos = document.querySelectorAll(".boletins-tipo-checkbox").length;
+
+    const filtroTiposAtivo = tiposSelecionados.length !== totalTipos;
+
+    const emPesquisa = filtros.length > 0 || filtroTiposAtivo;
 
     container.classList.toggle("boletins-em-pesquisa", emPesquisa);
 
@@ -4341,12 +4705,22 @@ function renderizarBoletins() {
 
         });
 
-        /* Aplicar pesquisa */
+        /* Aplicar pesquisa por descrição */
 
-        if (emPesquisa) {
+        if (filtros.length > 0) {
 
             dadosMes = dadosMes.filter(m =>
                 correspondeFiltroBoletim(m.descricao, filtros)
+            );
+
+        }
+
+        /* Aplicar pesquisa por tipo */
+
+        if (filtroTiposAtivo) {
+
+            dadosMes = dadosMes.filter(m =>
+                tiposSelecionados.includes(m.tipo)
             );
 
         }
@@ -4369,6 +4743,8 @@ function renderizarBoletins() {
 
         let saldo = 0;
         let totalMes = 0;
+        let totalEntradas = 0;
+        let totalSaidas = 0;
         let linhas = "";
 
         /* Gerar movimentações */
@@ -4379,6 +4755,14 @@ function renderizarBoletins() {
 
             totalMes += valor;
             saldo += valor;
+
+            /* Calcular entradas e saídas */
+
+            if (valor > 0) {
+                totalEntradas += valor;
+            } else if (valor < 0) {
+                totalSaidas += Math.abs(valor);
+            }
 
             totalGeral += valor;
             quantidadeGeral++;
@@ -4417,13 +4801,41 @@ function renderizarBoletins() {
 
                 <div class="boletim-mes-titulo">
 
-                    <h3>${nomeMes}</h3>
+                    <div>
+                        <h3>${nomeMes}</h3>
+
+                        <div class="boletim-totais-mes">
+
+                            <span class="boletim-entrada">
+                                Entradas:
+                                ${formatarMoedaBoletim(totalEntradas)}
+                            </span>
+
+                            <span class="boletim-saida">
+                                Saídas:
+                                ${formatarMoedaBoletim(totalSaidas)}
+                            </span>
+
+                        </div>
+                    </div>
 
                     <span>
                         ${dadosMes.length} movimentações
                     </span>
 
                 </div>
+
+                ${emPesquisa ? `
+                    <div class="boletim-total-pesquisa">
+
+                        <span>Total encontrado no mês</span>
+
+                        <span class="${classeValorBoletim(totalMes)}">
+                            ${formatarMoedaBoletim(totalMes)}
+                        </span>
+
+                    </div>
+                ` : ""}
 
                 <div class="boletim-tabela-container">
 
@@ -4450,6 +4862,7 @@ function renderizarBoletins() {
                 </div>
 
                 ${!emPesquisa ? `
+
                     <div class="boletim-total-pesquisa">
 
                         <span>Saldo final do mês</span>
@@ -4457,9 +4870,11 @@ function renderizarBoletins() {
                         <span class="${classeValorBoletim(saldo)}">
                             ${formatarMoedaBoletim(saldo)}
                         </span>
-            
+
                     </div>
-                    ${!emPesquisa ? gerarDREMensal(dadosMes, nomeMes, ano) : ""}
+
+                    ${gerarDREMensal(dadosMes, nomeMes, ano)}
+
                 ` : ""}
 
             </div>
@@ -4475,7 +4890,7 @@ function renderizarBoletins() {
         </div>
     `;
 
-    /* Resultado da pesquisa */
+    /* Resultado geral da pesquisa */
 
     if (emPesquisa) {
 
@@ -4504,7 +4919,7 @@ function renderizarBoletins() {
                     </div>
 
                     <div class="boletins-resultado-total ${classeValorBoletim(totalGeral)}">
-                        R$ ${formatarMoedaBoletim(totalGeral)}
+                        ${formatarMoedaBoletim(totalGeral)}
                     </div>
 
                 </div>
@@ -4523,6 +4938,7 @@ function renderizarBoletins() {
 }
 
 
+
 /* ==========================================
    EVENTOS
 ========================================== */
@@ -4537,6 +4953,8 @@ function inicializarBoletins() {
         return;
     }
 
+    inicializarFiltrosTiposBoletins();
+
     seletorAno.addEventListener("change", renderizarBoletins);
 
     campoFiltro.addEventListener("input", renderizarBoletins);
@@ -4544,6 +4962,17 @@ function inicializarBoletins() {
     botaoLimpar.addEventListener("click", () => {
 
         campoFiltro.value = "";
+
+        // Selecionar todos os tipos
+        document.querySelectorAll(".boletins-tipo-checkbox")
+            .forEach(cb => cb.checked = true);
+
+        // Marcar "Todos os tipos"
+        const selecionarTodos = document.getElementById("boletinsSelecionarTodos");
+
+        if (selecionarTodos) {
+            selecionarTodos.checked = true;
+        }
 
         renderizarBoletins();
 
