@@ -5587,7 +5587,7 @@ function dashboardPrepararDados(ano) {
 
         quantidadeTotal++;
 
-       // Entradas
+       // ENTRADAS
         if (
             categoria === "receitas" ||
             categoria === "receitasNaoOper"
@@ -5598,16 +5598,22 @@ function dashboardPrepararDados(ano) {
                 m.descricao || "Sem descrição"
             ).trim();
 
-            // Ignora linhas de totais no ranking
             if (!/valor total$/i.test(descricao)) {
-                maioresEntradas.set(
-                    descricao,
-                    (maioresEntradas.get(descricao) || 0) + valor
-                );
+
+                const chave = descricao;
+
+                const atual = maioresEntradas.get(chave) || {
+                    valor: 0,
+                    tipo: categoria
+                };
+
+                atual.valor += valor;
+
+                maioresEntradas.set(chave, atual);
             }
         }
 
-        // Saídas
+        // SAÍDAS
         if (
             categoria === "despesas" ||
             categoria === "cartoes" ||
@@ -5616,14 +5622,22 @@ function dashboardPrepararDados(ano) {
         ) {
             mes.saidas += valor;
 
-            const descricao = String(m.descricao || "Sem descrição").trim();
+            const descricao = String(
+                m.descricao || "Sem descrição"
+            ).trim();
 
-            // Não contabiliza linhas de totais como despesas individuais
             if (!/valor total$/i.test(descricao)) {
-                maioresDespesas.set(
-                    descricao,
-                    (maioresDespesas.get(descricao) || 0) + valor
-                );
+
+                const chave = descricao;
+
+                const atual = maioresDespesas.get(chave) || {
+                    valor: 0,
+                    tipo: categoria
+                };
+
+                atual.valor += valor;
+
+                maioresDespesas.set(chave, atual);
             }
         }
     });
@@ -5665,10 +5679,20 @@ function dashboardPrepararDados(ano) {
         totalPorCategoria,
 
         maioresDespesas: [...maioresDespesas.entries()]
+            .map(([descricao, dados]) => [
+                descricao,
+                dados.valor,
+                dados.tipo
+            ])
             .sort((a, b) => b[1] - a[1])
             .slice(0, 8),
 
         maioresEntradas: [...maioresEntradas.entries()]
+            .map(([descricao, dados]) => [
+                descricao,
+                dados.valor,
+                dados.tipo
+            ])
             .sort((a, b) => b[1] - a[1])
             .slice(0, 8)
     };
@@ -6024,6 +6048,13 @@ function dashboardGraficoMaioresDespesas(dados) {
 
     const despesas = dados.maioresDespesas;
 
+    const cores = {
+        despesas: dashboardCores.despesas,
+        cartoes: dashboardCores.cartoes,
+        investimentos: dashboardCores.investimentos,
+        saidasNaoOper: dashboardCores.saidasNaoOper
+    };
+
     dashboardCriarGrafico("graficoMaioresDespesas", {
         type: "bar",
 
@@ -6033,7 +6064,11 @@ function dashboardGraficoMaioresDespesas(dados) {
             datasets: [{
                 label: "Total",
                 data: despesas.map(d => d[1]),
-                backgroundColor: "#e67e22",
+
+                backgroundColor: despesas.map(
+                    d => cores[d[2]] || "#e67e22"
+                ),
+
                 borderRadius: 5,
                 maxBarThickness: 24
             }]
@@ -6045,9 +6080,24 @@ function dashboardGraficoMaioresDespesas(dados) {
             maintainAspectRatio: false,
 
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: dashboardCriarLegendaTipos([
+                    {
+                        nome: "Despesas",
+                        cor: dashboardCores.despesas
+                    },
+                    {
+                        nome: "Cartões",
+                        cor: dashboardCores.cartoes
+                    },
+                    {
+                        nome: "Investimentos",
+                        cor: dashboardCores.investimentos
+                    },
+                    {
+                        nome: "Saídas não operacionais",
+                        cor: dashboardCores.saidasNaoOper
+                    }
+                ]),
                 tooltip: {
                     callbacks: {
                         label: context =>
@@ -6206,6 +6256,11 @@ function dashboardGraficoMaioresEntradas(dados) {
 
     const entradas = dados.maioresEntradas;
 
+    const cores = {
+        receitas: dashboardCores.receitas,
+        receitasNaoOper: dashboardCores.receitasNaoOper
+    };
+
     dashboardCriarGrafico("graficoMaioresEntradas", {
         type: "bar",
 
@@ -6215,7 +6270,11 @@ function dashboardGraficoMaioresEntradas(dados) {
             datasets: [{
                 label: "Total",
                 data: entradas.map(e => e[1]),
-                backgroundColor: dashboardCores.receitas,
+
+                backgroundColor: entradas.map(
+                    e => cores[e[2]] || dashboardCores.receitas
+                ),
+
                 borderRadius: 5,
                 maxBarThickness: 24
             }]
@@ -6227,9 +6286,16 @@ function dashboardGraficoMaioresEntradas(dados) {
             maintainAspectRatio: false,
 
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: dashboardCriarLegendaTipos([
+                    {
+                        nome: "Receitas",
+                        cor: dashboardCores.receitas
+                    },
+                    {
+                        nome: "Receitas não operacionais",
+                        cor: dashboardCores.receitasNaoOper
+                    }
+                ]),
 
                 tooltip: {
                     callbacks: {
@@ -6270,6 +6336,31 @@ function dashboardGraficoMaioresEntradas(dados) {
     });
 }
 
+function dashboardCriarLegendaTipos(tipos) {
+
+    return {
+        display: true,
+        position: "bottom",
+
+        labels: {
+            color: "#ffffff",
+
+            generateLabels: (chart) => {
+
+                return tipos.map((tipo, index) => ({
+                    text: tipo.nome,
+                    fillStyle: tipo.cor,
+                    strokeStyle: tipo.cor,
+                    lineWidth: 0,
+                    fontColor: "#ffffff",
+                    color: "#ffffff",
+                    hidden: false,
+                    index: index
+                }));
+            }
+        }
+    };
+}
 
 // ========================================
 // GRÁFICO 9
