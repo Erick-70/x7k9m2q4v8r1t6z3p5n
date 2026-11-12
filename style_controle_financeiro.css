@@ -2949,3 +2949,192 @@ nav {
         opacity: 0.4;
     }
 }
+
+.boletim-totais-mes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 14px;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.boletim-mes .boletim-totais-mes .boletim-entrada {
+    color: #2ecc71 !important;
+    font-weight: 600;
+}
+
+.boletim-mes .boletim-totais-mes .boletim-saida {
+    color: #e74c3c !important;
+    font-weight: 600;
+}
+
+.boletins-filtro-tipos {
+    position: relative;
+}
+
+.boletins-filtro-tipos summary {
+    cursor: pointer;
+    padding: 9px 14px;
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    color: var(--texto);
+    background: var(--fundo-card);
+    font-size: 13px;
+    list-style: none;
+}
+
+.boletins-filtro-tipos summary::-webkit-details-marker {
+    display: none;
+}
+
+#boletinsFiltrosTipos {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 5px);
+    left: 0;
+    min-width: 220px;
+    padding: 12px;
+    background: var(--fundo-card);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    box-shadow: 0 5px 18px rgba(0,0,0,.25);
+}
+
+#boletinsFiltrosTipos label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 4px;
+    color: var(--texto);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#boletinsFiltrosTipos label:hover {
+    background: var(--fundo-hover);
+}
+
+#boletinsFiltrosTipos input {
+    accent-color: var(--destaque);
+}
+
+@media (max-width: 600px) {
+    .boletins-filtro-tipos {
+        flex: 1;
+    }
+
+    .boletins-filtro-tipos summary {
+        text-align: center;
+    }
+}
+
+#boletinsFiltrosTipos input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    padding: 0;
+    flex-shrink: 0;
+    accent-color: var(--destaque);
+}
+
+
+.balanco-tabela tbody tr {
+    transition: background .2s;
+}
+
+.balanco-tabela tbody td.tipo-receitas {
+    background: rgba(46, 204, 113, .09);
+}
+
+.balanco-tabela tbody td.tipo-despesas {
+    background: rgba(231, 76, 60, .09);
+}
+
+.balanco-tabela tbody td.tipo-cartoes {
+    background: rgba(241, 196, 15, .09);
+}
+
+.balanco-tabela tbody td.tipo-investimentos {
+    background: rgba(52, 152, 219, .09);
+}
+
+.balanco-tabela tbody td.tipo-receitas-nao-oper {
+    background: rgba(26, 188, 156, .09);
+}
+
+.balanco-tabela tbody td.tipo-saidas-nao-oper {
+    background: rgba(230, 126, 34, .09);
+}
+
+/* Borda lateral do primeiro campo de cada lado */
+
+.balanco-tabela tbody td.tipo-receitas:first-child,
+.balanco-tabela tbody td.tipo-despesas:first-child,
+.balanco-tabela tbody td.tipo-cartoes:first-child,
+.balanco-tabela tbody td.tipo-investimentos:first-child,
+.balanco-tabela tbody td.tipo-receitas-nao-oper:first-child,
+.balanco-tabela tbody td.tipo-saidas-nao-oper:first-child {
+    border-left: 3px solid;
+}
+
+.balanco-tabela tbody td.tipo-receitas:first-child {
+    border-left-color: #2ecc71;
+}
+
+.balanco-tabela tbody td.tipo-despesas:first-child {
+    border-left-color: #e74c3c;
+}
+
+.balanco-tabela tbody td.tipo-cartoes:first-child {
+    border-left-color: #f1c40f;
+}
+
+.balanco-tabela tbody td.tipo-investimentos:first-child {
+    border-left-color: #3498db;
+}
+
+.balanco-tabela tbody td.tipo-receitas-nao-oper:first-child {
+    border-left-color: #1abc9c;
+}
+
+.balanco-tabela tbody td.tipo-saidas-nao-oper:first-child {
+    border-left-color: #e67e22;
+}
+
+.balanco-tabela tbody td:nth-child(4).tipo-receitas,
+.balanco-tabela tbody td:nth-child(4).tipo-despesas,
+.balanco-tabela tbody td:nth-child(4).tipo-cartoes,
+.balanco-tabela tbody td:nth-child(4).tipo-investimentos,
+.balanco-tabela tbody td:nth-child(4).tipo-receitas-nao-oper,
+.balanco-tabela tbody td:nth-child(4).tipo-saidas-nao-oper {
+    border-left: 3px solid;
+}
+
+.balanco-tabela tbody td:nth-child(4).tipo-receitas {
+    border-left-color: #2ecc71;
+}
+
+.balanco-tabela tbody td:nth-child(4).tipo-despesas {
+    border-left-color: #e74c3c;
+}
+
+.balanco-tabela tbody td:nth-child(4).tipo-cartoes {
+    border-left-color: #f1c40f;
+}
+
+.balanco-tabela tbody td:nth-child(4).tipo-investimentos {
+    border-left-color: #3498db;
+}
+
+.balanco-tabela tbody td:nth-child(4).tipo-receitas-nao-oper {
+    border-left-color: #1abc9c;
+}
+
+.balanco-tabela tbody td:nth-child(4).tipo-saidas-nao-oper {
+    border-left-color: #e67e22;
+}
+
+.balanco-tabela tbody tr:hover {
+    filter: brightness(1.15);
+}
