@@ -65,6 +65,10 @@ botoesAbas.forEach(botao => {
             case "rankings":
                 renderizarRanking();
                 break;
+
+            case "projecao":
+                renderizarProjecaoFinanceira();
+                break;
         }
     });
 });
@@ -547,6 +551,12 @@ function renderizarMovimentacoes() {
     movimentacoesFiltradas.forEach(({ mov, index }) => {
 
         const tr = document.createElement("tr");
+		
+		const classeTipo = obterClasseTipoMovimentacao(mov.tipo);
+
+		if (classeTipo) {
+			tr.classList.add(classeTipo);
+		}
 
         const valor = Number(mov.valor) || 0;
 
@@ -613,6 +623,32 @@ function renderizarMovimentacoes() {
         `;
 
         tbody.appendChild(tr);
+		
+		const selectTipo = tr.querySelector('select[data-campo="tipo"]');
+
+		selectTipo.addEventListener("change", function () {
+
+			// Atualiza o tipo da movimentação.
+			movimentacoes[index].tipo = this.value;
+
+			// Remove todas as classes de cores anteriores.
+			tr.classList.remove(
+				"tipo-receitas",
+				"tipo-despesas",
+				"tipo-cartoes",
+				"tipo-investimentos",
+				"tipo-receitas-nao-oper",
+				"tipo-saidas-nao-oper"
+			);
+
+			// Aplica a nova cor imediatamente.
+			const novaClasse = obterClasseTipoMovimentacao(this.value);
+
+			if (novaClasse) {
+				tr.classList.add(novaClasse);
+			}
+
+		});
     });
 
     // Atualiza o total de movimentações cadastradas
@@ -662,6 +698,28 @@ function renderizarMovimentacoes() {
             </tr>
         `;
     }
+}
+
+
+function obterClasseTipoMovimentacao(tipo) {
+
+    const tipoClasse = {
+        "RECEITAS": "tipo-receitas",
+        "DESPESAS": "tipo-despesas",
+        "CARTÕES": "tipo-cartoes",
+        "CARTOES": "tipo-cartoes",
+        "INVESTIMENTOS": "tipo-investimentos",
+        "RECEITAS NÃO-OPER.": "tipo-receitas-nao-oper",
+        "RECEITAS NAO-OPER.": "tipo-receitas-nao-oper",
+        "SAÍDAS NÃO-OPER.": "tipo-saidas-nao-oper",
+        "SAIDAS NAO-OPER.": "tipo-saidas-nao-oper"
+    };
+
+    const tipoNormalizado = String(tipo || "")
+        .trim()
+        .toUpperCase();
+
+    return tipoClasse[tipoNormalizado] || "";
 }
 
 
@@ -4748,6 +4806,18 @@ function renderizarBoletins() {
         let linhas = "";
 
         /* Gerar movimentações */
+		
+		const tipoClasse = {
+			"RECEITAS": "tipo-receitas",
+			"DESPESAS": "tipo-despesas",
+			"CARTÕES": "tipo-cartoes",
+			"CARTOES": "tipo-cartoes",
+			"INVESTIMENTOS": "tipo-investimentos",
+			"RECEITAS NÃO-OPER.": "tipo-receitas-nao-oper",
+			"RECEITAS NAO-OPER.": "tipo-receitas-nao-oper",
+			"SAÍDAS NÃO-OPER.": "tipo-saidas-nao-oper",
+			"SAIDAS NAO-OPER.": "tipo-saidas-nao-oper"
+		};
 
         dadosMes.forEach(m => {
 
@@ -4773,9 +4843,12 @@ function renderizarBoletins() {
 
             const classeValor = classeValorBoletim(valor);
             const classeSaldo = classeValorBoletim(saldo);
+			
+			const tipo = String(m.tipo || "").trim().toUpperCase();
+			const classeTipo = tipoClasse[tipo] || "";
 
             linhas += `
-                <tr>
+                <tr class="${classeTipo}">
                     <td>${descricao}</td>
 
                     <td class="${classeValor}">
@@ -4934,6 +5007,10 @@ function renderizarBoletins() {
         resultado.innerHTML = "";
 
     }
+
+    /* Atualizar gráficos independentemente dos filtros por tipo */
+
+    atualizarGraficosBoletins(dadosAno, filtros, ano);
 
 }
 
@@ -6590,3 +6667,1483 @@ function inicializarDashboard() {
 window.addEventListener("load", carregarMovimentacoes);
 
 
+
+let boletinsChartTotal = null;
+let boletinsChartIndividual = null;
+
+function atualizarGraficosBoletins(dadosAno, filtros, ano) {
+
+    const container = document.getElementById("boletinsGraficos");
+
+    if (!container) return;
+
+    // Verificar se existe pesquisa por descrição
+    const possuiFiltro = filtros && filtros.length > 0;
+
+    // Sem pesquisa, destruir gráficos e ocultar container
+    if (!possuiFiltro) {
+
+        if (boletinsChartTotal) {
+            boletinsChartTotal.destroy();
+            boletinsChartTotal = null;
+        }
+
+        if (boletinsChartIndividual) {
+            boletinsChartIndividual.destroy();
+            boletinsChartIndividual = null;
+        }
+
+        container.hidden = true;
+
+        return;
+    }
+
+    // Mostrar gráficos
+    container.hidden = false;
+
+    // Evitar atualização antes da biblioteca carregar
+    if (typeof Chart === "undefined") {
+        console.error("Chart.js não foi carregado.");
+        return;
+    }
+
+    // Nomes dos meses
+    const meses = boletinsMeses;
+
+    // Preparar valores dos gráficos
+    const totaisMensais = Array(12).fill(0);
+
+    const valoresPorFiltro = filtros.map(filtro => ({
+        nome: filtro,
+        valores: Array(12).fill(0)
+    }));
+
+    // Percorrer todas as movimentações do ano
+    dadosAno.forEach(m => {
+
+        const indiceMes = m.dataConvertida.mes - 1;
+
+        const descricao = m.descricao;
+        const valor = converterValorBoletim(m.valor);
+
+        // Verificar se corresponde à pesquisa completa
+        if (correspondeFiltroBoletim(descricao, filtros)) {
+
+            totaisMensais[indiceMes] += Math.abs(valor);
+
+        }
+
+        // Calcular individualmente cada pesquisa
+        filtros.forEach((filtro, indice) => {
+
+            if (correspondeFiltroBoletim(descricao, [filtro])) {
+
+                valoresPorFiltro[indice].valores[indiceMes] += Math.abs(valor);
+
+            }
+
+        });
+
+    });
+
+    // Configuração comum
+    const configuracaoComum = {
+
+        responsive: true,
+        maintainAspectRatio: false,
+
+        animation: false,
+
+        resizeDelay: 100,
+
+        interaction: {
+            intersect: false,
+            mode: "index"
+        },
+
+        plugins: {
+
+            legend: {
+                display: true,
+                position: "bottom"
+            },
+
+           tooltip: {
+
+                enabled: true,
+
+                callbacks: {
+
+                    title: function(context) {
+
+                        return context[0].label;
+
+                    },
+
+                    label: function(context) {
+
+                        return context.dataset.label + ": " +
+                            formatarMoedaBoletim(context.parsed.y);
+
+                    },
+
+                    footer: function(context) {
+
+                        return "Ano: " + ano;
+
+                    }
+
+                }
+
+            }
+
+        },
+
+        scales: {
+
+            y: {
+
+                ticks: {
+
+                    callback: function(valor) {
+
+                        return Number(valor).toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL"
+                        });
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    };
+
+    // =====================================
+    // GRÁFICO 1: TOTAL MENSAL
+    // =====================================
+
+    if (boletinsChartTotal) {
+        boletinsChartTotal.destroy();
+    }
+
+    const canvasTotal = document.getElementById("boletinsGraficoTotal");
+
+    boletinsChartTotal = new Chart(canvasTotal, {
+
+        type: "line",
+
+        data: {
+
+            labels: meses,
+
+            datasets: [{
+
+                label: "Total encontrado",
+
+                data: totaisMensais,
+
+                borderColor: "#3498db",
+                backgroundColor: "rgba(52, 152, 219, 0.12)",
+
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+
+                tension: 0.3,
+                fill: true
+
+            }]
+
+        },
+
+        options: configuracaoComum
+
+    });
+
+
+    // =====================================
+    // GRÁFICO 2: COMPARAÇÃO POR PESQUISA
+    // =====================================
+
+    if (boletinsChartIndividual) {
+        boletinsChartIndividual.destroy();
+    }
+
+    const cores = [
+        "#3498db",
+        "#2ecc71",
+        "#e67e22",
+        "#9b59b6",
+        "#e74c3c",
+        "#1abc9c",
+        "#f1c40f",
+        "#34495e",
+        "#fd79a8",
+        "#00cec9"
+    ];
+
+    const datasets = valoresPorFiltro.map((item, indice) => {
+
+        const cor = cores[indice % cores.length];
+
+        return {
+
+            label: item.nome,
+
+            data: item.valores,
+
+            borderColor: cor,
+            backgroundColor: cor,
+
+            borderWidth: 2.5,
+
+            pointRadius: 4,
+            pointHoverRadius: 7,
+
+            tension: 0.3,
+
+            fill: false
+
+        };
+
+    });
+
+    const canvasIndividual = document.getElementById("boletinsGraficoIndividual");
+
+    boletinsChartIndividual = new Chart(canvasIndividual, {
+
+        type: "line",
+
+        data: {
+
+            labels: meses,
+
+            datasets: datasets
+
+        },
+
+        options: configuracaoComum
+
+    });
+
+}
+
+
+
+
+
+/* =========================================
+   PROJEÇÃO FINANCEIRA
+========================================= */
+
+let projecaoGraficoInstancia = null;
+
+const projecaoMeses = [
+    "Janeiro", "Fevereiro", "Março",
+    "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro",
+    "Outubro", "Novembro", "Dezembro"
+];
+
+function projecaoConverterValor(valor) {
+
+    if (typeof valor === "number") {
+        return Number.isFinite(valor) ? Math.abs(valor) : 0;
+    }
+
+    if (!valor) return 0;
+
+    let numero = String(valor)
+        .replace(/[R$\s]/g, "")
+        .replace(/\./g, "")
+        .replace(",", ".");
+
+    numero = Number(numero);
+
+    return Number.isFinite(numero) ? Math.abs(numero) : 0;
+}
+
+
+function projecaoConverterData(data) {
+
+    if (!data) return null;
+
+    let ano, mes, dia;
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(data)) {
+
+        const partes = data.substring(0, 10).split("-");
+
+        ano = Number(partes[0]);
+        mes = Number(partes[1]);
+        dia = Number(partes[2]);
+
+    } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(data)) {
+
+        const partes = data.split("/");
+
+        dia = Number(partes[0]);
+        mes = Number(partes[1]);
+        ano = Number(partes[2]);
+
+    } else {
+        return null;
+    }
+
+    const dataConvertida = new Date(ano, mes - 1, dia);
+
+    if (
+        dataConvertida.getFullYear() !== ano ||
+        dataConvertida.getMonth() !== mes - 1 ||
+        dataConvertida.getDate() !== dia
+    ) {
+        return null;
+    }
+
+    return dataConvertida;
+}
+
+
+function projecaoFormatarMoeda(valor) {
+
+    return Number(valor || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+}
+
+
+function projecaoNormalizarDescricao(descricao) {
+
+    return String(descricao || "")
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+
+function projecaoObterGrupo(tipo) {
+
+    const t = String(tipo || "").trim().toUpperCase();
+
+    // RECEITAS OPERACIONAIS
+    if (t === "RECEITAS") {
+        return "receitas";
+    }
+
+    // RECEITAS NÃO OPERACIONAIS
+    if (
+        t === "RECEITAS NÃO-OPER." ||
+        t === "RECEITAS NAO-OPER."
+    ) {
+        return "receitasNaoOperacionais";
+    }
+
+    // DESPESAS
+    if (t === "DESPESAS") {
+        return "despesas";
+    }
+
+    // CARTÕES
+    if (t === "CARTÕES" || t === "CARTOES") {
+        return "cartoes";
+    }
+
+    // INVESTIMENTOS
+    if (t === "INVESTIMENTOS") {
+        return "investimentos";
+    }
+
+    // SAÍDAS NÃO OPERACIONAIS
+    if (
+        t === "SAÍDAS NÃO-OPER." ||
+        t === "SAIDAS NAO-OPER."
+    ) {
+        return "naoOperacionais";
+    }
+
+    return null;
+}
+
+
+/* =========================================
+   CÁLCULO PRINCIPAL
+========================================= */
+
+function calcularProjecaoFinanceira() {
+
+    const hoje = new Date();
+
+    // Últimos 12 meses completos, sem incluir o mês atual.
+    const inicioHistorico = new Date(
+        hoje.getFullYear(),
+        hoje.getMonth() - 12,
+        1
+    );
+
+    const mesesHistorico = [];
+
+    for (let i = 0; i < 12; i++) {
+
+        const data = new Date(
+            inicioHistorico.getFullYear(),
+            inicioHistorico.getMonth() + i,
+            1
+        );
+
+        mesesHistorico.push({
+            ano: data.getFullYear(),
+            mes: data.getMonth(),
+            chave: `${data.getFullYear()}-${data.getMonth()}`,
+            nome: projecaoMeses[data.getMonth()]
+        });
+    }
+
+    // Agrupa os valores por descrição, tipo e mês.
+    const agrupados = {};
+
+    movimentacoes.forEach(m => {
+
+        const data = projecaoConverterData(m.data);
+
+        if (!data) return;
+
+        if (data < inicioHistorico) return;
+
+        if (
+            data.getFullYear() > hoje.getFullYear() ||
+            (
+                data.getFullYear() === hoje.getFullYear() &&
+                data.getMonth() >= hoje.getMonth()
+            )
+        ) {
+            return;
+        }
+
+        const grupo = projecaoObterGrupo(m.tipo);
+
+        if (!grupo) return;
+
+        const descricao = String(m.descricao || "").trim();
+
+        if (!descricao) return;
+
+        const chaveDescricao = projecaoNormalizarDescricao(descricao);
+
+        const chave = `${chaveDescricao}|${String(m.tipo).trim().toUpperCase()}`;
+
+        const chaveMes = `${data.getFullYear()}-${data.getMonth()}`;
+
+        if (!agrupados[chave]) {
+
+            agrupados[chave] = {
+                descricao,
+                tipo: String(m.tipo).trim(),
+                grupo,
+                meses: {}
+            };
+        }
+
+        if (!agrupados[chave].meses[chaveMes]) {
+            agrupados[chave].meses[chaveMes] = 0;
+        }
+
+        agrupados[chave].meses[chaveMes] +=
+            projecaoConverterValor(m.valor);
+
+    });
+
+
+    
+    // Identifica as movimentações recorrentes.
+    const recorrentes = [];
+
+    Object.values(agrupados).forEach(item => {
+
+        const valoresHistoricos = mesesHistorico.map(m =>
+            item.meses[m.chave] || 0
+        );
+
+        const mesesComMovimentacao = valoresHistoricos.filter(
+            valor => valor > 0
+        ).length;
+
+        if (mesesComMovimentacao < 6) return;
+
+        const totalHistorico = valoresHistoricos.reduce(
+            (total, valor) => total + valor,
+            0
+        );
+
+        const mediaMensal = totalHistorico / 12;
+
+        if (mediaMensal <= 0) return;
+
+        // Média ponderada dos últimos três meses.
+        const ultimosTres = valoresHistoricos.slice(-3);
+
+        const pesos = [1, 2, 3];
+
+        let somaPonderada = 0;
+        let somaPesos = 0;
+
+        ultimosTres.forEach((valor, indice) => {
+
+            somaPonderada += valor * pesos[indice];
+            somaPesos += pesos[indice];
+
+        });
+
+        let mediaRecente = somaPesos > 0
+            ? somaPonderada / somaPesos
+            : mediaMensal;
+
+        // Evita projeção zerada quando os últimos meses
+        // não tiveram movimentação.
+        if (mediaRecente <= 0) {
+            mediaRecente = mediaMensal;
+        }
+
+        recorrentes.push({
+
+            descricao: item.descricao,
+            tipo: item.tipo,
+            grupo: item.grupo,
+
+            mesesComMovimentacao,
+
+            mediaMensal,
+            mediaRecente,
+
+            valoresHistoricos,
+
+            totalAnual: 0
+
+        });
+
+    });
+
+    // Organiza os próximos 12 meses.
+    const saldoInicial = Number(
+        document.getElementById("projecaoSaldoInicial").value
+    ) || 0;
+
+
+    
+    /* =========================================
+        VALORES REALIZADOS DOS ÚLTIMOS 12 MESES
+    ========================================= */
+
+    const historicoMensal = mesesHistorico.map(m => {
+
+        const valores = {
+            receitas: 0,
+            despesas: 0
+        };
+
+        Object.values(agrupados).forEach(item => {
+
+            const valor = item.meses[m.chave] || 0;
+
+            // TODAS AS ENTRADAS
+            if (
+                item.grupo === "receitas" ||
+                item.grupo === "receitasNaoOperacionais"
+            ) {
+
+                valores.receitas += valor;
+
+            }
+
+            // TODAS AS SAÍDAS
+            else if (
+                item.grupo === "despesas" ||
+                item.grupo === "cartoes" ||
+                item.grupo === "investimentos" ||
+                item.grupo === "naoOperacionais"
+            ) {
+
+                valores.despesas += valor;
+
+            }
+
+        });
+
+        return {
+            nome: m.nome,
+            ano: m.ano,
+            mes: m.mes,
+            receitas: valores.receitas,
+            despesas: valores.despesas
+        };
+
+    });
+
+
+
+    const mesesProjetados = [];
+
+    let saldoAcumulado = saldoInicial;
+
+    for (let i = 1; i <= 12; i++) {
+
+        const data = new Date(
+            hoje.getFullYear(),
+            hoje.getMonth() + i,
+            1
+        );
+
+        const mes = {
+            nome: projecaoMeses[data.getMonth()],
+            ano: data.getFullYear(),
+            mes: data.getMonth(),
+
+            receitas: 0,
+            receitasNaoOperacionais: 0,
+            despesas: 0,
+            cartoes: 0,
+            investimentos: 0,
+            naoOperacionais: 0,
+            resultado: 0,
+            saldo: 0
+        };
+
+        recorrentes.forEach(item => {
+
+            const valorProjetado = projetarValorMensal(
+                item,
+                data,
+                mesesHistorico
+            );
+
+            mes[item.grupo] += valorProjetado;
+
+        });
+
+        const entradas = mes.receitas + mes.receitasNaoOperacionais;
+
+        const saidas = mes.despesas + mes.cartoes +  mes.investimentos + mes.naoOperacionais;
+
+        mes.resultado = entradas - saidas;
+
+        saldoAcumulado += mes.resultado;
+
+        mes.saldo = saldoAcumulado;
+
+        mesesProjetados.push(mes);
+    }
+
+    return {
+        mesesHistorico,
+        historicoMensal,
+        recorrentes,
+        mesesProjetados,
+        saldoInicial
+    };
+}
+
+
+/* =========================================
+   RENDERIZAÇÃO
+========================================= */
+
+function renderizarProjecaoFinanceira() {
+    const hoje = new Date();
+
+    if (!Array.isArray(movimentacoes)) return;
+
+    const dados = calcularProjecaoFinanceira();
+
+    const meses = dados.mesesProjetados;
+    const recorrentes = dados.recorrentes;
+
+    const totalReceitas = meses.reduce(
+        (soma, m) => soma +
+            m.receitas +
+            m.receitasNaoOperacionais,
+        0
+    );
+
+    const totalDespesas = meses.reduce(
+        (soma, m) => soma +
+            m.despesas +
+            m.cartoes +
+            m.investimentos +
+            m.naoOperacionais,
+        0
+    );
+
+    const resultadoTotal = totalReceitas - totalDespesas;
+
+    const saldoFinal = dados.saldoInicial + resultadoTotal;
+
+
+    // Resumo.
+    document.getElementById("projecaoReceitas").textContent =
+        projecaoFormatarMoeda(totalReceitas);
+
+    document.getElementById("projecaoDespesas").textContent =
+        projecaoFormatarMoeda(totalDespesas);
+
+    document.getElementById("projecaoResultado").textContent =
+        projecaoFormatarMoeda(resultadoTotal);
+
+    document.getElementById("projecaoSaldoFinal").textContent =
+        projecaoFormatarMoeda(saldoFinal);
+
+    document.getElementById("projecaoTotalRecorrentes").textContent =
+        recorrentes.length;
+
+
+    const inicio = dados.mesesHistorico[0];
+    const fim = dados.mesesHistorico[11];
+
+    document.getElementById("projecaoPeriodoHistorico").textContent =
+        `${inicio.nome}/${inicio.ano} até ${fim.nome}/${fim.ano}`;
+
+
+    // Tabela mensal.
+    const corpo = document.getElementById("projecaoTabelaCorpo");
+
+    corpo.innerHTML = "";
+
+    meses.forEach(m => {
+
+        const classeResultado =
+            m.resultado >= 0
+                ? "projecao-positivo"
+                : "projecao-negativo";
+
+        const classeSaldo =
+            m.saldo >= 0
+                ? "projecao-positivo"
+                : "projecao-negativo";
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>${m.nome}/${m.ano}</td>
+
+            <td class="projecao-positivo">
+                ${projecaoFormatarMoeda(m.receitas)}
+            </td>
+
+            <td>
+                ${projecaoFormatarMoeda(m.despesas)}
+            </td>
+
+            <td>
+                ${projecaoFormatarMoeda(m.cartoes)}
+            </td>
+
+            <td>
+                ${projecaoFormatarMoeda(m.investimentos)}
+            </td>
+
+            <td class="projecao-positivo">
+                ${projecaoFormatarMoeda(m.receitasNaoOperacionais)}
+            </td>
+
+            <td>
+                ${projecaoFormatarMoeda(m.naoOperacionais)}
+            </td>
+
+            <td class="${classeResultado}">
+                ${projecaoFormatarMoeda(m.resultado)}
+            </td>
+
+            <td class="${classeSaldo}">
+                ${projecaoFormatarMoeda(m.saldo)}
+            </td>
+        `;
+
+        corpo.appendChild(tr);
+
+    });
+
+
+    // Detalhamento individual.
+    const corpoIndividual = document.getElementById(
+        "projecaoIndividualCorpo"
+    );
+
+    corpoIndividual.innerHTML = "";
+
+    if (recorrentes.length === 0) {
+
+        corpoIndividual.innerHTML = `
+            <tr>
+                <td colspan="5" class="projecao-vazio">
+                    Não foram encontradas movimentações recorrentes
+                    suficientes nos últimos 12 meses.
+                </td>
+            </tr>
+        `;
+
+    } else {
+
+        recorrentes.forEach(item => {
+
+            item.totalAnual = 0;
+
+            for (let i = 1; i <= 12; i++) {
+
+                const data = new Date(
+                    hoje.getFullYear(),
+                    hoje.getMonth() + i,
+                    1
+                );
+
+                item.totalAnual += projetarValorMensal(
+                    item,
+                    data,
+                    dados.mesesHistorico
+                );
+
+            }
+
+        });
+
+        recorrentes.sort((a, b) =>
+            b.totalAnual - a.totalAnual
+        );
+
+        recorrentes.forEach(item => {
+
+            const tr = document.createElement("tr");
+
+            // Identifica a classe conforme o tipo da movimentação.
+            const tipoClasse = {
+                "RECEITAS": "tipo-receitas",
+                "DESPESAS": "tipo-despesas",
+                "CARTÕES": "tipo-cartoes",
+                "CARTOES": "tipo-cartoes",
+                "INVESTIMENTOS": "tipo-investimentos",
+                "RECEITAS NÃO-OPER.": "tipo-receitas-nao-oper",
+                "RECEITAS NAO-OPER.": "tipo-receitas-nao-oper",
+                "SAÍDAS NÃO-OPER.": "tipo-saidas-nao-oper",
+                "SAIDAS NAO-OPER.": "tipo-saidas-nao-oper"
+            };
+
+            const tipo = String(item.tipo || "").trim().toUpperCase();
+
+            tr.classList.add(tipoClasse[tipo] || "");
+
+            tr.innerHTML = `
+                <td>${item.descricao}</td>
+                <td>${item.tipo}</td>
+                <td>${item.mesesComMovimentacao} de 12</td>
+                <td>${projecaoFormatarMoeda(item.mediaMensal)}</td>
+                <td>${projecaoFormatarMoeda(item.totalAnual)}</td>
+            `;
+
+            corpoIndividual.appendChild(tr);
+
+        });
+    }
+
+
+    // Gráfico principal.
+    atualizarGraficoProjecao(meses);
+
+    // Gráfico comparativo.
+    atualizarGraficoComparativo(
+        dados.historicoMensal,
+        meses
+    );
+
+
+    // Observação.
+    document.getElementById("projecaoObservacao").textContent =
+        `A projeção considera ${recorrentes.length} descrições recorrentes. ` +
+        `Foram analisados os últimos 12 meses completos. ` +
+        `Movimentações identificadas em menos de 6 meses não entram ` +
+        `na estimativa automática. O saldo acumulado começa no valor ` +
+        `informado em Saldo inicial.`;
+}
+
+
+/* =========================================
+   GRÁFICO
+========================================= */
+
+function atualizarGraficoProjecao(meses) {
+
+    const canvas = document.getElementById("projecaoGrafico");
+
+    if (!canvas || typeof Chart === "undefined") return;
+
+    if (projecaoGraficoInstancia) {
+        projecaoGraficoInstancia.destroy();
+    }
+
+    const labels = meses.map(m =>
+        `${m.nome.substring(0, 3)}/${String(m.ano).slice(-2)}`
+    );
+
+    projecaoGraficoInstancia = new Chart(canvas, {
+
+        type: "line",
+
+        data: {
+            labels,
+
+            datasets: [
+
+                {
+                    label: "Receitas",
+                    data: meses.map(m => m.receitas),
+                    borderColor: "#2ecc71",
+                    backgroundColor: "rgba(46, 204, 113, .10)",
+                    borderWidth: 2,
+                    tension: .3
+                },
+
+                {
+                    label: "Despesas",
+                    data: meses.map(m =>
+                        m.despesas +
+                        m.cartoes +
+                        m.investimentos +
+                        m.naoOperacionais
+                    ),
+                    borderColor: "#e74c3c",
+                    backgroundColor: "rgba(231, 76, 60, .10)",
+                    borderWidth: 2,
+                    tension: .3
+                },
+
+                {
+                    label: "Resultado",
+                    data: meses.map(m => m.resultado),
+                    borderColor: "#3498db",
+                    backgroundColor: "rgba(52, 152, 219, .10)",
+                    borderWidth: 2,
+                    tension: .3
+                },
+
+                {
+                    label: "Saldo acumulado",
+                    data: meses.map(m => m.saldo),
+                    borderColor: "#f1c40f",
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    tension: .3
+                }
+
+            ]
+        },
+
+        options: {
+
+            responsive: true,
+            maintainAspectRatio: false,
+
+            interaction: {
+                intersect: false,
+                mode: "index"
+            },
+
+            plugins: {
+
+                legend: {
+                    position: "bottom"
+                },
+
+                tooltip: {
+                    enabled: true,
+
+                    callbacks: {
+                        label: function(context) {
+
+                            return context.dataset.label + ": " +
+                                projecaoFormatarMoeda(context.parsed.y);
+
+                        }
+                    }
+                }
+
+            },
+
+            scales: {
+
+                y: {
+                    ticks: {
+                        callback: function(valor) {
+
+                            return Number(valor).toLocaleString("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                                maximumFractionDigits: 0
+                            });
+
+                        }
+                    }
+                }
+
+            }
+
+        }
+
+    });
+
+}
+
+
+/* =========================================
+   INICIALIZAÇÃO
+========================================= */
+
+function inicializarProjecaoFinanceira() {
+
+    const botao = document.getElementById("projecaoAtualizar");
+    const saldo = document.getElementById("projecaoSaldoInicial");
+
+    if (!botao || !saldo) return;
+
+    botao.addEventListener("click", renderizarProjecaoFinanceira);
+
+    saldo.addEventListener("input", renderizarProjecaoFinanceira);
+
+    renderizarProjecaoFinanceira();
+}
+
+function projetarValorMensal(item, data, mesesHistorico) {
+
+    // Localiza o mesmo mês no histórico do ano anterior.
+    const indiceHistorico = mesesHistorico.findIndex(
+        m => m.mes === data.getMonth()
+    );
+
+    const valorMesmoMes = indiceHistorico >= 0
+        ? item.valoresHistoricos[indiceHistorico]
+        : 0;
+
+    // Se houver histórico para o mesmo mês,
+    // combina sazonalidade e tendência recente.
+    if (valorMesmoMes > 0) {
+
+        return (
+            valorMesmoMes * 0.65 +
+            item.mediaRecente * 0.35
+        );
+
+    }
+
+    // Sem registro no mesmo mês, utiliza a tendência recente.
+    return item.mediaRecente;
+
+}
+
+
+let projecaoGraficoComparativoInstancia = null;
+
+/* =========================================
+   GRÁFICO COMPARATIVO
+   COMPARAÇÃO MÊS A MÊS
+========================================= */
+
+function atualizarGraficoComparativo(historico, projetados) {
+
+    const canvas = document.getElementById(
+        "projecaoGraficoComparativo"
+    );
+
+    if (!canvas || typeof Chart === "undefined") return;
+
+    if (projecaoGraficoComparativoInstancia) {
+        projecaoGraficoComparativoInstancia.destroy();
+    }
+
+    // Organiza os meses de janeiro a dezembro.
+    const comparacoes = [];
+
+    for (let i = 0; i < 12; i++) {
+
+        const realizado = historico.find(m => m.mes === i);
+        const projetado = projetados.find(m => m.mes === i);
+
+        if (!realizado || !projetado) continue;
+
+        comparacoes.push({
+            nome: realizado.nome.substring(0, 3),
+
+            anoRealizado: realizado.ano,
+            anoProjetado: projetado.ano,
+
+            receitasRealizadas: realizado.receitas,
+            receitasProjetadas:
+                projetado.receitas +
+                projetado.receitasNaoOperacionais,
+
+            despesasRealizadas: realizado.despesas,
+
+            despesasProjetadas:
+                projetado.despesas +
+                projetado.cartoes +
+                projetado.investimentos +
+                projetado.naoOperacionais
+        });
+
+    }
+
+    const labels = comparacoes.map(m =>
+        `${m.nome} ${m.anoRealizado} - ${m.anoProjetado}`
+    );
+
+    projecaoGraficoComparativoInstancia = new Chart(canvas, {
+
+        type: "bar",
+
+        data: {
+
+            labels,
+
+            datasets: [
+
+                {
+                    label: "Receitas realizadas",
+                    data: comparacoes.map(m => m.receitasRealizadas),
+                    backgroundColor: "rgba(46, 204, 113, .75)",
+                    borderColor: "#2ecc71",
+                    borderWidth: 1
+                },
+
+                {
+                    label: "Receitas projetadas",
+                    data: comparacoes.map(m => m.receitasProjetadas),
+                    backgroundColor: "rgba(46, 204, 113, .30)",
+                    borderColor: "#2ecc71",
+                    borderWidth: 1
+                },
+
+                {
+                    label: "Despesas realizadas",
+                    data: comparacoes.map(m => m.despesasRealizadas),
+                    backgroundColor: "rgba(231, 76, 60, .75)",
+                    borderColor: "#e74c3c",
+                    borderWidth: 1
+                },
+
+                {
+                    label: "Despesas projetadas",
+                    data: comparacoes.map(m => m.despesasProjetadas),
+                    backgroundColor: "rgba(231, 76, 60, .30)",
+                    borderColor: "#e74c3c",
+                    borderWidth: 1
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+            maintainAspectRatio: false,
+
+            interaction: {
+                intersect: false,
+                mode: "index"
+            },
+
+            plugins: {
+
+                legend: {
+                    position: "bottom"
+                },
+
+                tooltip: {
+
+                    enabled: true,
+
+                    callbacks: {
+
+                        title: function(context) {
+
+                            const indice = context[0].dataIndex;
+                            const m = comparacoes[indice];
+
+                            return [
+                                `Realizado: ${m.nome}/${m.anoRealizado}`,
+                                `Projetado: ${m.nome}/${m.anoProjetado}`
+                            ];
+
+                        },
+
+                        label: function(context) {
+
+                            return context.dataset.label + ": " +
+                                projecaoFormatarMoeda(context.parsed.y);
+
+                        }
+
+                    }
+
+                }
+
+            },
+
+            scales: {
+
+                x: {
+                    stacked: false
+                },
+
+                y: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+
+                        callback: function(valor) {
+
+                            return Number(valor).toLocaleString("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                                maximumFractionDigits: 0
+                            });
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    });
+
+}
+
+
+
+
+/* ==========================================
+   GERAR PDF COMPLETO
+========================================== */
+
+document.getElementById("gerarPdf").addEventListener("click", async function () {
+
+    // Primeiro, exibe todas as abas
+    document.body.classList.add("modo-pdf");
+
+    // Aguarda o navegador atualizar o layout
+    await new Promise(resolve => requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+    }));
+
+    // Agora carrega os dados e cria os gráficos
+    atualizarTodosAnos();
+    await carregarTudo();
+
+    // Aguarda a renderização dos gráficos
+    await new Promise(resolve => requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+    }));
+
+    // Redimensiona e atualiza todos os gráficos
+    if (typeof Chart !== "undefined" && Chart.instances) {
+
+        Object.values(Chart.instances).forEach(grafico => {
+            grafico.resize();
+            grafico.update("none");
+        });
+
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    prepararFluxoPdf();
+
+    // Abre a impressão
+    window.print();
+
+});
+
+// Remove o modo PDF depois da impressão
+window.addEventListener("afterprint", function () {
+
+    document.getElementById("fluxo-pdf-container")?.remove();
+
+    const tabela = document.getElementById("fluxoTabela");
+
+    if (tabela) {
+        tabela.style.display = "";
+    }
+
+    document.body.classList.remove("modo-pdf");
+
+});
+
+
+/* ==========================================
+   CARREGAR TODOS OS DADOS
+========================================== */
+
+async function carregarTudo() {
+
+    await inicializarDashboard();
+    await carregarAnosFluxo();
+    await renderizarAnalises();
+    await renderizarDREBalanço();
+    await renderizarBoletins();
+    await renderizarProjecaoFinanceira();
+
+}
+
+
+if (typeof Chart !== "undefined" && Chart.instances) {
+
+    Object.values(Chart.instances).forEach(grafico => {
+
+        grafico.resize();
+
+        // Obriga o eixo horizontal a mostrar todos os meses
+        if (grafico.options.scales?.x?.ticks) {
+            grafico.options.scales.x.ticks.autoSkip = false;
+            grafico.options.scales.x.ticks.maxRotation = 0;
+            grafico.options.scales.x.ticks.minRotation = 0;
+        }
+
+        grafico.update("none");
+
+    });
+
+}
+
+
+function prepararFluxoPdf() {
+
+    const tabelaOriginal = document.getElementById("fluxoTabela");
+
+    if (!tabelaOriginal) return;
+
+    document.getElementById("fluxo-pdf-container")?.remove();
+
+    const container = document.createElement("div");
+    container.id = "fluxo-pdf-container";
+
+    // Cria os quatro trimestres
+    for (let trimestre = 1; trimestre <= 4; trimestre++) {
+
+        const bloco = document.createElement("div");
+        bloco.className = "fluxo-pdf-bloco";
+
+        const titulo = document.createElement("h3");
+        titulo.textContent = `${trimestre}º Trimestre`;
+
+        const tabela = tabelaOriginal.cloneNode(true);
+        tabela.removeAttribute("id");
+
+        const primeiroMes = (trimestre - 1) * 3 + 1;
+        const ultimoMes = primeiroMes + 2;
+
+        tabela.querySelectorAll("[data-mes]").forEach(elemento => {
+            const mes = Number(elemento.dataset.mes);
+            elemento.hidden = mes < primeiroMes || mes > ultimoMes;
+        });
+
+        // Não mostrar o total anual nos trimestres
+        tabela.querySelectorAll(".fluxo-coluna-anual").forEach(elemento => {
+            elemento.hidden = true;
+        });
+
+        tabela.querySelectorAll("[data-trimestre]").forEach(elemento => {
+            elemento.hidden = Number(elemento.dataset.trimestre) !== trimestre;
+        });
+
+        tabela.querySelectorAll("[data-separador-trimestre]").forEach(elemento => {
+            elemento.hidden = true;
+        });
+
+        bloco.appendChild(titulo);
+        bloco.appendChild(tabela);
+        container.appendChild(bloco);
+    }
+
+    // Cria o bloco final: somente os valores anuais
+    const blocoTotal = document.createElement("div");
+    blocoTotal.className = "fluxo-pdf-bloco fluxo-pdf-total";
+
+    const tituloTotal = document.createElement("h3");
+    tituloTotal.textContent = "Total Anual";
+
+    const tabelaTotal = tabelaOriginal.cloneNode(true);
+    tabelaTotal.removeAttribute("id");
+
+    // Esconde todas as colunas mensais
+    tabelaTotal.querySelectorAll("[data-mes]").forEach(elemento => {
+        elemento.hidden = true;
+    });
+
+    // Esconde os títulos dos trimestres
+    tabelaTotal.querySelectorAll("[data-trimestre]").forEach(elemento => {
+        elemento.hidden = true;
+    });
+
+    // Esconde os separadores
+    tabelaTotal.querySelectorAll("[data-separador-trimestre]").forEach(elemento => {
+        elemento.hidden = true;
+    });
+
+    // Mantém somente a coluna anual
+    tabelaTotal.querySelectorAll("th, td").forEach(elemento => {
+
+        if (
+            elemento.classList.contains("fluxo-coluna-anual") ||
+            elemento.cellIndex === 0
+        ) {
+            elemento.hidden = false;
+        } else if (!elemento.classList.contains("fluxo-espacador")) {
+            elemento.hidden = true;
+        }
+
+    });
+
+    blocoTotal.appendChild(tituloTotal);
+    blocoTotal.appendChild(tabelaTotal);
+
+    container.appendChild(blocoTotal);
+
+    tabelaOriginal.parentElement.appendChild(container);
+
+    tabelaOriginal.style.display = "none";
+}
+
+function atualizarTodosAnos() {
+
+    const ano = document.getElementById("dashboardAno").value;
+
+    const selects = [
+        "fluxoAno",
+        "analisesAno",
+        "dreAno",
+        "boletinsAno"
+    ];
+
+    selects.forEach(id => {
+
+        const select = document.getElementById(id);
+
+        if (!select) return;
+
+        // Verifica se o ano existe nas opções
+        const opcaoExiste = [...select.options].some(
+            opcao => opcao.value === ano
+        );
+
+        if (opcaoExiste) {
+            select.value = ano;
+        }
+
+    });
+
+}
