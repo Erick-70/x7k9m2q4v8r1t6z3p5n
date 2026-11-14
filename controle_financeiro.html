@@ -15,10 +15,12 @@
         <button class="aba" data-aba="dados">Dados</button>
         <button class="aba" data-aba="fluxo-caixa">Fluxo de Caixa Anual</button>
         <button class="aba" data-aba="analises">Análises Estratégicas</button>
+        <button class="aba" data-aba="projecao">Projeção Financeira</button>
         <button class="aba" data-aba="dre-balanco">DRE's e Balanço Anual</button>
         <button class="aba" data-aba="boletins">Boletins Mensais</button>
         <button class="aba" data-aba="rankings">Ranking das Movimentações</button>
         <button class="aba" id="botaoSalvar" type="button">Salvar</button>
+        <button class="aba" id="gerarPdf" type="button">Gerar Relatório Anual</button>
         <button class="aba" id="Orcamento-Pessoal" type="button">Orçamento Pessoal</button>
         <button class="aba" id="carregarJsbin" type="button"> Carregar JSBin</button>
     </nav>
@@ -516,6 +518,33 @@
 
             <div id="boletinsResultadoFiltro" class="boletins-resultado-filtro" hidden></div>
 
+            <div id="boletinsGraficos" class="boletins-graficos" hidden>
+
+            <div class="boletim-grafico-card">
+
+                <h3>Total mensal encontrado</h3>
+
+                <p>Comparação do valor total das movimentações filtradas em cada mês.</p>
+
+                <div class="boletim-grafico-area">
+                    <canvas id="boletinsGraficoTotal"></canvas>
+                </div>
+
+            </div>
+
+            <div class="boletim-grafico-card">
+
+                <h3>Comparação por pesquisa</h3>
+
+                <p>Comparação individual de cada descrição pesquisada.</p>
+
+                <div class="boletim-grafico-area">
+                    <canvas id="boletinsGraficoIndividual"></canvas>
+                </div>
+
+            </div>
+
+        </div>
             <div id="boletinsPlanilhas" class="boletins-planilhas"></div>
 
         </section>
@@ -571,6 +600,177 @@
                 </table>
 
             </div>
+
+        </section>
+
+        <section class="conteudo-aba" id="projecao">
+
+            <h2 class="titulo-secao">Projeção Financeira</h2>
+
+            <p class="descricao-secao">
+                A Projeção Financeira apresenta uma estimativa automática do comportamento financeiro para os próximos 12 meses, utilizando como referência o histórico de movimentações registradas nos últimos 12 meses completos.
+
+                <br><br>
+
+                O cálculo identifica movimentações recorrentes com base na descrição e no tipo de lançamento, considerando apenas aquelas que apresentam registros em pelo menos 6 meses do período analisado. Movimentações eventuais ou com baixa frequência são desconsideradas da estimativa automática.
+
+                <br><br>
+
+                Para calcular os valores projetados, o sistema combina dois critérios: o comportamento observado no mesmo mês do ano anterior, com peso de 65%, e a tendência recente, calculada por meio de uma média ponderada dos últimos três meses, com peso de 35%. Quando não existe registro correspondente no mesmo mês do histórico, é utilizada a tendência recente como referência.
+
+                <br><br>
+
+                Os resultados são organizados mensalmente, contemplando receitas, despesas, cartões, investimentos e saídas não operacionais. A partir desses valores, são calculados o resultado financeiro mensal e a evolução do saldo acumulado, considerando o saldo inicial informado.
+
+                <br><br>
+
+                A aba também apresenta o detalhamento individual das movimentações recorrentes, permitindo identificar quais descrições possuem maior participação nos valores projetados.
+
+                <br><br>
+
+                **Importante:** os valores apresentados são estimativas baseadas no comportamento financeiro registrado anteriormente, não representam lançamentos futuros confirmados. Alterações de renda, despesas, frequência de pagamentos e acontecimentos excepcionais podem modificar os resultados reais.
+            </p>
+
+            <div class="projecao-controles">
+                <div class="projecao-campo">
+                    <label for="projecaoSaldoInicial">Saldo inicial</label>
+                    <input
+                        type="number"
+                        id="projecaoSaldoInicial"
+                        value="0"
+                        step="0.01"
+                        placeholder="0,00"
+                    >
+                </div>
+
+                <div class="projecao-info">
+                    <span>Histórico analisado</span>
+                    <strong id="projecaoPeriodoHistorico">Calculando...</strong>
+                </div>
+
+                <div class="projecao-info">
+                    <span>Descrições recorrentes</span>
+                    <strong id="projecaoTotalRecorrentes">0</strong>
+                </div>
+
+                <button type="button" id="projecaoAtualizar">
+                    Atualizar projeção
+                </button>
+            </div>
+
+            <div class="projecao-resumo">
+
+                <div class="projecao-card">
+                    <span>Receitas previstas</span>
+                    <strong id="projecaoReceitas">R$ 0,00</strong>
+                </div>
+
+                <div class="projecao-card">
+                    <span>Despesas previstas</span>
+                    <strong id="projecaoDespesas">R$ 0,00</strong>
+                </div>
+
+                <div class="projecao-card">
+                    <span>Resultado previsto</span>
+                    <strong id="projecaoResultado">R$ 0,00</strong>
+                </div>
+
+                <div class="projecao-card">
+                    <span>Saldo ao final dos 12 meses</span>
+                    <strong id="projecaoSaldoFinal">R$ 0,00</strong>
+                </div>
+
+            </div>
+
+            <div class="projecao-grafico-container">
+                <h3>Evolução financeira projetada</h3>
+                <div class="projecao-grafico">
+                    <canvas id="projecaoGrafico"></canvas>
+                </div>
+            </div>
+
+            <div class="projecao-comparativo">
+
+                <h3 class="titulo-secao">
+                    Comparativo, realizado x projetado
+                </h3>
+
+                <p class="descricao-secao">
+                    Comparação entre os valores dos últimos 12 meses completos
+                    e os valores estimados para os próximos 12 meses.
+                </p>
+
+                <div class="projecao-comparativo-grafico">
+                    <canvas id="projecaoGraficoComparativo"></canvas>
+                </div>
+
+            </div>
+
+            <p> <br><br></p>
+
+            <div class="projecao-tabela-container">
+
+                <h3>Projeção mensal</h3>
+
+                <table class="projecao-tabela">
+                    <thead>
+                        <tr>
+                            <th>Mês</th>
+                            <th>Receitas</th>
+                            <th>Despesas</th>
+                            <th>Cartões</th>
+                            <th>Investimentos</th>
+                            <th>Receitas Não-Oper</th>
+                            <th>Saida Não-Oper</th>
+                            <th>Resultado</th>
+                            <th>Saldo acumulado</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="projecaoTabelaCorpo">
+                        <tr>
+                            <td colspan="8" class="projecao-vazio">
+                                Carregando projeção...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+
+            <div class="projecao-individual-container">
+
+                <h3>Projeção por descrição</h3>
+
+                <p class="descricao-secao">
+                    São exibidas as movimentações identificadas como recorrentes no histórico.
+                </p>
+
+                <div class="projecao-tabela-container">
+                    <table class="projecao-tabela">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Tipo</th>
+                                <th>Meses identificados</th>
+                                <th>Média mensal</th>
+                                <th>Projeção em 12 meses</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="projecaoIndividualCorpo">
+                            <tr>
+                                <td colspan="5" class="projecao-vazio">
+                                    Carregando movimentações...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="projecao-observacao" id="projecaoObservacao"></div>
 
         </section>
 
