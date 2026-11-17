@@ -69,6 +69,10 @@ botoesAbas.forEach(botao => {
             case "projecao":
                 renderizarProjecaoFinanceira();
                 break;
+
+            case "calendario-historico":
+                inicializarCalendarioFinanceiro();
+                break;
         }
     });
 });
@@ -291,6 +295,7 @@ async function carregarMovimentacoes() {
 
     dadosFinanceiros = gerarDicionarioFinanceiro();
     inicializarDashboard();
+
 }
 
 function salvarMovimentacoes() {
@@ -7963,6 +7968,11 @@ document.getElementById("gerarPdf").addEventListener("click", async function () 
 
     prepararFluxoPdf();
 
+    // Aguarda o navegador atualizar o calendário e o layout
+    await new Promise(resolve => requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+    }));
+
     // Abre a impressão
     window.print();
 
@@ -7996,6 +8006,7 @@ async function carregarTudo() {
     await renderizarDREBalanço();
     await renderizarBoletins();
     await renderizarProjecaoFinanceira();
+    await inicializarCalendarioFinanceiro();
 
 }
 
@@ -8147,3 +8158,926 @@ function atualizarTodosAnos() {
     });
 
 }
+
+
+
+
+
+/* =========================================
+   CALENDÁRIO FINANCEIRO
+========================================= */
+
+let anoAtualCalendario = new Date().getFullYear();
+
+const categoriasCalendario = [
+    {
+        tipo: "RECEITAS",
+        nome: "Receitas",
+        classe: "calendario-cor-receitas",
+        cor: "#2ecc71",
+        positivo: true
+    },
+    {
+        tipo: "DESPESAS",
+        nome: "Despesas",
+        classe: "calendario-cor-despesas",
+        cor: "#e74c3c",
+        positivo: false
+    },
+    {
+        tipo: "CARTÕES",
+        nome: "Cartões",
+        classe: "calendario-cor-cartoes",
+        cor: "#f1c40f",
+        positivo: false
+    },
+    {
+        tipo: "INVESTIMENTOS",
+        nome: "Investimentos",
+        classe: "calendario-cor-investimentos",
+        cor: "#3498db",
+        positivo: false
+    },
+    {
+        tipo: "RECEITAS NÃO-OPER.",
+        nome: "Receitas não operacionais",
+        classe: "calendario-cor-receitas-nao-oper",
+        cor: "#1abc9c",
+        positivo: true
+    },
+    {
+        tipo: "SAÍDAS NÃO-OPER.",
+        nome: "Saídas não operacionais",
+        classe: "calendario-cor-saidas-nao-oper",
+        cor: "#e67e22",
+        positivo: false
+    }
+];
+
+
+/* =========================================
+   FUNÇÕES AUXILIARES
+========================================= */
+
+function valorCalendario(valor) {
+
+    if (typeof valor === "number") {
+        return Number.isFinite(valor) ? valor : 0;
+    }
+
+    if (!valor) return 0;
+
+    let texto = String(valor)
+        .replace(/R\$/gi, "")
+        .replace(/\s/g, "")
+        .trim();
+
+    if (texto.includes(",")) {
+        texto = texto
+            .replace(/\./g, "")
+            .replace(",", ".");
+    }
+
+    const numero = Number(texto);
+
+    return Number.isFinite(numero) ? numero : 0;
+}
+
+
+
+function dataCalendario(data) {
+
+    if (!data) return null;
+
+    let ano, mes, dia;
+
+    if (data instanceof Date) {
+
+        if (isNaN(data.getTime())) return null;
+
+        ano = data.getFullYear();
+        mes = data.getMonth() + 1;
+        dia = data.getDate();
+
+    } else {
+
+        const texto = String(data).trim();
+
+        let partes;
+
+        // FORMATO AAAA-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}/.test(texto)) {
+
+            partes = texto.substring(0, 10).split("-");
+
+            ano = Number(partes[0]);
+            mes = Number(partes[1]);
+            dia = Number(partes[2]);
+
+        }
+
+        // FORMATO DD/MM/AAAA
+        else if (/^\d{2}\/\d{2}\/\d{4}$/.test(texto)) {
+
+            partes = texto.split("/");
+
+            dia = Number(partes[0]);
+            mes = Number(partes[1]);
+            ano = Number(partes[2]);
+
+        } else {
+            return null;
+        }
+    }
+
+    // VALIDAÇÃO SEM CONVERSÃO UTC
+    const dataValida = new Date(ano, mes - 1, dia);
+
+    if (
+        dataValida.getFullYear() !== ano ||
+        dataValida.getMonth() !== mes - 1 ||
+        dataValida.getDate() !== dia
+    ) {
+        return null;
+    }
+
+    return {
+        ano,
+        mes,
+        dia,
+        chave:
+            `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`
+    };
+}
+
+
+
+function moedaCalendario(valor) {
+
+    return (valor < 0 ? "-R$ " : "R$ ") +
+        Math.abs(valor).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+}
+
+
+function obterCategoriaCalendario(tipo) {
+
+    return categoriasCalendario.find(c => c.tipo === tipo);
+}
+
+
+function obterMovimentacoesDia(chave) {
+
+    return obterMovimentacoesFiltradasCalendario().filter(m => {
+
+        const data = dataCalendario(m.data);
+
+        return data && data.chave === chave;
+
+    });
+
+}
+
+
+function calcularDadosCalendario(lista) {
+
+    const grupos = {};
+
+    let totalMovimentado = 0;
+    let resultado = 0;
+
+    categoriasCalendario.forEach(c => {
+
+        grupos[c.tipo] = {
+            categoria: c,
+            quantidade: 0,
+            total: 0
+        };
+
+    });
+
+    lista.forEach(m => {
+
+        const categoria = obterCategoriaCalendario(m.tipo);
+
+        if (!categoria) return;
+
+        const valor = Math.abs(valorCalendario(m.valor));
+
+        if (valor === 0) return;
+
+        const grupo = grupos[m.tipo];
+
+        grupo.quantidade++;
+        grupo.total += valor;
+
+        totalMovimentado += valor;
+
+        resultado += categoria.positivo ? valor : -valor;
+
+    });
+
+    return {
+        grupos,
+        totalMovimentado,
+        resultado
+    };
+}
+
+
+/* =========================================
+   NAVEGAÇÃO DO ANO
+========================================= */
+
+function alterarAnoCalendario(diferenca) {
+
+    anoAtualCalendario += diferenca;
+
+    renderizarCalendarioFinanceiro();
+
+}
+
+
+/* =========================================
+   INICIALIZAÇÃO
+========================================= */
+
+function inicializarCalendarioFinanceiro() {
+
+    if (typeof movimentacoes === "undefined") return;
+
+    const anos = movimentacoes
+        .map(m => dataCalendario(m.data))
+        .filter(Boolean)
+        .map(d => d.ano);
+
+    if (anos.length) {
+        anoAtualCalendario = Math.max(...anos);
+    }
+
+    renderizarCalendarioFinanceiro();
+
+}
+
+
+/* =========================================
+   RENDERIZAÇÃO PRINCIPAL
+========================================= */
+
+function renderizarCalendarioFinanceiro() {
+
+    const elementoAno = document.getElementById("anoCalendario");
+    const elementoLegenda = document.getElementById("calendarioLegenda");
+    const elementoResumo = document.getElementById("calendarioResumo");
+    const elementoMeses = document.getElementById("calendarioMeses");
+
+    if (
+        !elementoAno ||
+        !elementoLegenda ||
+        !elementoResumo ||
+        !elementoMeses
+    ) return;
+
+    elementoAno.textContent = anoAtualCalendario;
+
+    renderizarLegendaCalendario();
+
+    renderizarResumoAnualCalendario();
+
+    elementoMeses.innerHTML = "";
+
+    const nomesMeses = [
+        "Janeiro", "Fevereiro", "Março",
+        "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro",
+        "Outubro", "Novembro", "Dezembro"
+    ];
+
+    for (let mes = 0; mes < 12; mes++) {
+
+        elementoMeses.appendChild(
+            criarMesCalendario(mes, nomesMeses[mes])
+        );
+
+    }
+
+}
+
+
+/* =========================================
+   LEGENDA
+========================================= */
+
+function renderizarLegendaCalendario() {
+
+    const elemento = document.getElementById("calendarioLegenda");
+
+    elemento.innerHTML = categoriasCalendario.map(c => `
+
+        <div class="calendario-legenda-item">
+
+            <span class="calendario-legenda-cor"
+                  style="background:${c.cor}">
+            </span>
+
+            ${c.nome}
+
+        </div>
+
+    `).join("");
+
+}
+
+
+
+/* =========================================
+   FILTROS GERAIS DO CALENDÁRIO
+========================================= */
+
+function normalizarTextoCalendario(texto) {
+
+    return String(texto || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+
+}
+
+
+function obterMovimentacoesFiltradasCalendario() {
+
+    const campoDescricao = document.getElementById(
+        "calendarioFiltroDescricao"
+    );
+
+    const pesquisa = normalizarTextoCalendario(
+        campoDescricao ? campoDescricao.value : ""
+    );
+
+    // Pesquisa múltipla por vírgula, ponto e vírgula ou quebra de linha
+    const termos = pesquisa
+        .split(/[,;\n]+/)
+        .map(t => t.trim())
+        .filter(Boolean);
+
+    // Tipos selecionados
+    const tiposSelecionados = Array.from(
+        document.querySelectorAll(
+            "#calendarioFiltrosTipos input:checked"
+        )
+    ).map(input => input.value);
+
+    return movimentacoes.filter(m => {
+
+        const descricao = normalizarTextoCalendario(m.descricao);
+
+        // Basta encontrar uma das descrições pesquisadas
+        const correspondeDescricao =
+            termos.length === 0 ||
+            termos.some(termo => descricao.includes(termo));
+
+        // Se nenhum tipo estiver marcado, considera todos
+        const correspondeTipo =
+            tiposSelecionados.length === 0 ||
+            tiposSelecionados.includes(m.tipo);
+
+        return correspondeDescricao && correspondeTipo;
+
+    });
+
+}
+
+
+/* =========================================
+   CRIAR FILTROS DE TIPO
+========================================= */
+
+function inicializarFiltrosCalendario() {
+
+    const container = document.getElementById(
+        "calendarioFiltrosTipos"
+    );
+
+    if (!container) return;
+
+    container.innerHTML = categoriasCalendario.map(c => `
+
+        <label>
+            <input
+                type="checkbox"
+                value="${escaparTextoCalendario(c.tipo)}"
+            >
+            <span>${escaparTextoCalendario(c.nome)}</span>
+        </label>
+
+    `).join("");
+
+    // Atualiza o calendário ao pesquisar
+    document.getElementById("calendarioFiltroDescricao")
+        .addEventListener("input", renderizarCalendarioFinanceiro);
+
+    // Atualiza ao selecionar tipos
+    container.addEventListener("change", renderizarCalendarioFinanceiro);
+
+    // Limpa todos os filtros
+    document.getElementById("calendarioLimparFiltros")
+        .addEventListener("click", function() {
+
+            document.getElementById("calendarioFiltroDescricao").value = "";
+
+            container.querySelectorAll("input[type='checkbox']")
+                .forEach(input => input.checked = false);
+
+            renderizarCalendarioFinanceiro();
+
+        });
+
+}
+
+
+/* =========================================
+   RESUMO ANUAL
+========================================= */
+
+function renderizarResumoAnualCalendario() {
+
+    const elemento = document.getElementById("calendarioResumo");
+
+    const lista = obterMovimentacoesFiltradasCalendario().filter(m => {
+
+        const data = dataCalendario(m.data);
+
+        return data && data.ano === anoAtualCalendario;
+
+    });
+
+    const dados = calcularDadosCalendario(lista);
+
+    const receitas =
+        dados.grupos["RECEITAS"].total +
+        dados.grupos["RECEITAS NÃO-OPER."].total;
+
+    const despesas =
+        dados.grupos["DESPESAS"].total +
+        dados.grupos["CARTÕES"].total +
+        dados.grupos["INVESTIMENTOS"].total +
+        dados.grupos["SAÍDAS NÃO-OPER."].total;
+
+    const dias = new Set(
+        lista
+            .map(m => dataCalendario(m.data))
+            .filter(Boolean)
+            .map(d => d.chave)
+    );
+
+    elemento.innerHTML = `
+
+        <div class="calendario-resumo-card">
+            <span>Total movimentado</span>
+            <strong>${moedaCalendario(dados.totalMovimentado)}</strong>
+        </div>
+
+        <div class="calendario-resumo-card">
+            <span>Receitas</span>
+            <strong class="calendario-positivo">
+                ${moedaCalendario(receitas)}
+            </strong>
+        </div>
+
+        <div class="calendario-resumo-card">
+            <span>Saídas</span>
+            <strong class="calendario-negativo">
+                ${moedaCalendario(despesas)}
+            </strong>
+        </div>
+
+        <div class="calendario-resumo-card">
+            <span>Resultado anual</span>
+            <strong class="${dados.resultado >= 0 ? "calendario-positivo" : "calendario-negativo"}">
+                ${moedaCalendario(dados.resultado)}
+            </strong>
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================
+   CRIAR MÊS
+========================================= */
+
+function criarMesCalendario(mes, nomeMes) {
+
+    const container = document.createElement("div");
+
+    container.className = "calendario-mes";
+
+    const primeiroDia = new Date(
+        anoAtualCalendario,
+        mes,
+        1
+    ).getDay();
+
+    const quantidadeDias = new Date(
+        anoAtualCalendario,
+        mes + 1,
+        0
+    ).getDate();
+
+    const diasSemana = [
+        "D", "S", "T", "Q", "Q", "S", "S"
+    ];
+
+    const dadosMes = obterMovimentacoesFiltradasCalendario().filter(m => {
+
+        const data = dataCalendario(m.data);
+
+        return data &&
+            data.ano === anoAtualCalendario &&
+            data.mes === mes + 1;
+
+    });
+
+    const resumoMes = calcularDadosCalendario(dadosMes);
+
+    const htmlDiasSemana = diasSemana.map(d => `
+        <div class="calendario-dia-semana">${d}</div>
+    `).join("");
+
+    let htmlDias = "";
+
+    // Espaços antes do primeiro dia
+    for (let i = 0; i < primeiroDia; i++) {
+        htmlDias += `<div></div>`;
+    }
+
+    // Dias do mês
+    for (let dia = 1; dia <= quantidadeDias; dia++) {
+
+        const chave =
+            `${anoAtualCalendario}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+
+        const listaDia = obterMovimentacoesDia(chave);
+
+        const dadosDia = calcularDadosCalendario(listaDia);
+
+        const temMovimentacao = dadosDia.totalMovimentado > 0;
+
+        let htmlBarra = "";
+
+        if (temMovimentacao) {
+
+            categoriasCalendario.forEach(c => {
+
+                const total = dadosDia.grupos[c.tipo].total;
+
+                if (total <= 0) return;
+
+                const percentual =
+                    (total / dadosDia.totalMovimentado) * 100;
+
+                htmlBarra += `
+
+                    <span
+                        class="${c.classe}"
+                        style="width:${percentual}%"
+                        title="${c.nome}: ${percentual.toFixed(1)}% | ${moedaCalendario(total)}"
+                        onclick="event.stopPropagation(); abrirDetalhesCalendario('${chave}', '${c.tipo}')"
+                    ></span>
+
+                `;
+
+            });
+
+        }
+
+        const resultado = dadosDia.resultado;
+
+        const htmlResultado = temMovimentacao ? `
+
+            <div class="calendario-dia-resultado ${resultado >= 0 ? "positivo" : "negativo"}">
+                ${resultado >= 0 ? "+" : ""}${moedaCalendario(resultado)}
+            </div>
+
+        ` : "";
+
+        htmlDias += `
+
+            <div
+                class="calendario-dia ${temMovimentacao ? "tem-movimentacao" : ""}"
+                ${temMovimentacao ? `onclick="abrirDetalhesCalendario('${chave}')"` : ""}
+                title="${temMovimentacao ? "Consultar movimentações" : "Sem movimentações"}"
+            >
+
+                <span class="calendario-dia-numero">
+                    ${dia}
+                </span>
+
+                ${temMovimentacao ? `
+
+                    <div class="calendario-dia-valores">
+
+                        <div class="calendario-dia-total">
+                            ${moedaCalendario(dadosDia.totalMovimentado)}
+                        </div>
+
+                        ${htmlResultado}
+
+                    </div>
+
+                    <div class="calendario-dia-barra">
+                        ${htmlBarra}
+                    </div>
+
+                ` : ""}
+
+            </div>
+
+        `;
+
+    }
+
+    const receitas =
+        resumoMes.grupos["RECEITAS"].total +
+        resumoMes.grupos["RECEITAS NÃO-OPER."].total;
+
+    const saidas =
+        resumoMes.totalMovimentado - receitas;
+
+    container.innerHTML = `
+
+        <h3>${nomeMes}</h3>
+
+        <div class="calendario-mes-resumo">
+
+            <span>
+                Entradas: ${moedaCalendario(receitas)}
+            </span>
+
+            <span>
+                Resultado:
+                <strong class="${resumoMes.resultado >= 0 ? "calendario-positivo" : "calendario-negativo"}">
+                    ${moedaCalendario(resumoMes.resultado)}
+                </strong>
+            </span>
+
+        </div>
+
+        <div class="calendario-dias-semana">
+            ${htmlDiasSemana}
+        </div>
+
+        <div class="calendario-dias">
+            ${htmlDias}
+        </div>
+
+    `;
+
+    return container;
+
+}
+
+
+/* =========================================
+   DETALHAMENTO DO DIA
+========================================= */
+
+function abrirDetalhesCalendario(chave, tipoSelecionado = null) {
+
+    const lista = obterMovimentacoesDia(chave);
+
+    if (!lista.length) return;
+
+    const dados = calcularDadosCalendario(lista);
+
+    const [ano, mes, dia] = chave.split("-").map(Number);
+
+    const dataFormatada = new Date(
+        ano,
+        mes - 1,
+        dia
+    ).toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+    });
+
+    document.getElementById("calendarioModalTitulo").textContent =
+        "Movimentações do dia";
+
+    document.getElementById("calendarioModalData").textContent =
+        dataFormatada;
+
+    const receitas =
+        dados.grupos["RECEITAS"].total +
+        dados.grupos["RECEITAS NÃO-OPER."].total;
+
+    const saidas =
+        dados.totalMovimentado - receitas;
+
+    document.getElementById("calendarioModalResumo").innerHTML = `
+
+        <div class="calendario-dia-resumo">
+
+            <div class="calendario-dia-resumo-item">
+                <span>Movimentado</span>
+                <strong>${moedaCalendario(dados.totalMovimentado)}</strong>
+            </div>
+
+            <div class="calendario-dia-resumo-item">
+                <span>Entradas</span>
+                <strong class="calendario-positivo">
+                    ${moedaCalendario(receitas)}
+                </strong>
+            </div>
+
+            <div class="calendario-dia-resumo-item">
+                <span>Saídas</span>
+                <strong class="calendario-negativo">
+                    ${moedaCalendario(saidas)}
+                </strong>
+            </div>
+
+        </div>
+
+        <div class="calendario-dia-resumo-item" style="margin-bottom:18px">
+
+            <span>Resultado do dia</span>
+
+            <strong class="${dados.resultado >= 0 ? "calendario-positivo" : "calendario-negativo"}">
+                ${moedaCalendario(dados.resultado)}
+            </strong>
+
+        </div>
+
+    `;
+
+    let htmlGrupos = "";
+
+    categoriasCalendario.forEach(c => {
+
+        if (tipoSelecionado && c.tipo !== tipoSelecionado) {
+            return;
+        }
+
+        const grupo = dados.grupos[c.tipo];
+
+        if (grupo.quantidade === 0) return;
+
+        const movimentacoesGrupo = lista.filter(
+            m => m.tipo === c.tipo
+        );
+
+        const totalGrupo = grupo.total;
+
+        const percentual =
+            (totalGrupo / dados.totalMovimentado) * 100;
+
+        const totalAssinado = c.positivo
+            ? totalGrupo
+            : -totalGrupo;
+
+        htmlGrupos += `
+
+            <div class="calendario-grupo">
+
+                <div
+                    class="calendario-grupo-header"
+                    style="background:${c.cor}18; border-left:3px solid ${c.cor}"
+                >
+
+                    <strong>
+                        ${c.nome}
+                        (${percentual.toFixed(1)}%)
+                    </strong>
+
+                    <strong>
+                        ${moedaCalendario(totalAssinado)}
+                    </strong>
+
+                </div>
+
+                <div class="calendario-grupo-lista">
+
+                    ${movimentacoesGrupo.map(m => {
+
+                        const valor = Math.abs(
+                            valorCalendario(m.valor)
+                        );
+
+                        const valorAssinado = c.positivo
+                            ? valor
+                            : -valor;
+
+                        return `
+
+                            <div class="calendario-movimentacao">
+
+                                <span class="calendario-movimentacao-descricao">
+                                    ${escaparTextoCalendario(m.descricao || "Sem descrição")}
+                                </span>
+
+                                <span class="calendario-movimentacao-valor ${c.positivo ? "calendario-positivo" : "calendario-negativo"}">
+                                    ${moedaCalendario(valorAssinado)}
+                                </span>
+
+                            </div>
+
+                        `;
+
+                    }).join("")}
+
+                </div>
+
+                <div class="calendario-grupo-total">
+
+                    <span>
+                        Total de ${grupo.quantidade} movimentação(ões)
+                    </span>
+
+                    <strong>
+                        ${moedaCalendario(totalAssinado)}
+                    </strong>
+
+                </div>
+
+            </div>
+
+        `;
+
+    });
+
+    document.getElementById(
+        "calendarioModalMovimentacoes"
+    ).innerHTML = htmlGrupos || `
+        <p style="color:var(--text-secondary)">
+            Nenhuma movimentação encontrada.
+        </p>
+    `;
+
+    document.getElementById("calendarioModal").hidden = false;
+
+    document.body.style.overflow = "hidden";
+
+}
+
+
+/* =========================================
+   SEGURANÇA DE TEXTO
+========================================= */
+
+function escaparTextoCalendario(texto) {
+
+    return String(texto).replace(/[&<>"']/g, caractere => {
+
+        return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[caractere];
+
+    });
+
+}
+
+
+/* =========================================
+   FECHAR DETALHAMENTO
+========================================= */
+
+function fecharDetalhesCalendario() {
+
+    document.getElementById("calendarioModal").hidden = true;
+
+    document.body.style.overflow = "";
+
+}
+
+
+/* =========================================
+   FECHAR COM ESC
+========================================= */
+
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "Escape") {
+
+        const modal = document.getElementById("calendarioModal");
+
+        if (modal && !modal.hidden) {
+            fecharDetalhesCalendario();
+        }
+
+    }
+
+});
+
+
+inicializarFiltrosCalendario();
