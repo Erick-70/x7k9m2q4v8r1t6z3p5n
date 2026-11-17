@@ -18,6 +18,7 @@
         <button class="aba" data-aba="projecao">Projeção Financeira</button>
         <button class="aba" data-aba="dre-balanco">DRE's e Balanço Anual</button>
         <button class="aba" data-aba="boletins">Boletins Mensais</button>
+        <button class="aba" data-aba="calendario-historico">Calendário Histórico</button>
         <button class="aba" data-aba="rankings">Ranking das Movimentações</button>
         <button class="aba" id="botaoSalvar" type="button">Salvar</button>
         <button class="aba" id="gerarPdf" type="button">Gerar Relatório Anual</button>
@@ -771,6 +772,101 @@
             </div>
 
             <div class="projecao-observacao" id="projecaoObservacao"></div>
+
+        </section>
+
+        <section class="conteudo-aba" id="calendario-historico">
+
+            <div class="calendario-header">
+                <div>
+                    <h2>Calendário Financeiro</h2>
+                    <p>Visualize o histórico das suas movimentações financeiras.</p>
+                </div>
+            </div>
+
+            <!-- CONTROLE DO ANO -->
+            <div class="calendario-controles">
+                <button type="button" onclick="alterarAnoCalendario(-1)">
+                    &#10094;
+                </button>
+
+                <strong id="anoCalendario">2026</strong>
+
+                <button type="button" onclick="alterarAnoCalendario(1)">
+                    &#10095;
+                </button>
+            </div>
+
+            <!-- FILTROS DO CALENDÁRIO -->
+            <div class="calendario-filtros">
+
+                <div class="calendario-filtro-descricao">
+                    <label for="calendarioFiltroDescricao">
+                        Pesquisar movimentações
+                    </label>
+
+                    <input
+                        type="text"
+                        id="calendarioFiltroDescricao"
+                        placeholder="Ex.: Aluguel, Internet, Energia..."
+                        autocomplete="off"
+                    >
+
+                    <small>
+                        Separe várias descrições por vírgula, ponto e vírgula ou quebra de linha.
+                    </small>
+                </div>
+
+                <details class="calendario-filtro-tipos">
+                    <summary>Filtrar por tipo</summary>
+                    <div id="calendarioFiltrosTipos"></div>
+                </details>
+
+                <button
+                    type="button"
+                    id="calendarioLimparFiltros"
+                >
+                    Limpar filtros
+                </button>
+
+            </div>
+
+            <!-- LEGENDA -->
+            <div class="calendario-legenda" id="calendarioLegenda"></div>
+
+            <!-- RESUMO ANUAL -->
+            <div class="calendario-resumo" id="calendarioResumo"></div>
+
+            <!-- OS 12 MESES -->
+            <div class="calendario-meses" id="calendarioMeses"></div>
+
+            <!-- DETALHAMENTO DO DIA -->
+            <div class="calendario-modal" id="calendarioModal" hidden>
+
+                <div class="calendario-modal-fundo"
+                    onclick="fecharDetalhesCalendario()">
+                </div>
+
+                <div class="calendario-modal-conteudo">
+
+                    <div class="calendario-modal-header">
+                        <div>
+                            <h3 id="calendarioModalTitulo">Movimentações</h3>
+                            <p id="calendarioModalData"></p>
+                        </div>
+
+                        <button type="button"
+                                onclick="fecharDetalhesCalendario()">
+                            &times;
+                        </button>
+                    </div>
+
+                    <div id="calendarioModalResumo"></div>
+
+                    <div id="calendarioModalMovimentacoes"></div>
+
+                </div>
+            </div>
 
         </section>
 
