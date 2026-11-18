@@ -2583,6 +2583,7 @@ function gerarLinhaAnalises(mes, nome, total = false) {
 // TABELA ANUAL
 // ==========================================
 
+
 function gerarTabelaAnalises(ano, meses) {
 
     const calculo = calcularResultadosAnalises(meses);
@@ -2605,59 +2606,71 @@ function gerarTabelaAnalises(ano, meses) {
     return `
         <div class="analises-ano">
 
-            <div class="analises-ano-titulo">
+            ${gerarIndicadoresAnuaisAnalises(calculo)}
 
-                <h3>Demonstrativo financeiro de ${ano}</h3>
+            <div class="analises-secao">
 
-                <span>
-                    Resultado anual: ${formatarValorAnalises(
-                        calculo.total.lucroLiquido
-                    )}
-                </span>
+                <div class="analises-ano-titulo">
+                    <h3>Demonstrativo financeiro de ${ano}</h3>
 
-            </div>
+                    <span>
+                        Resultado anual:
+                        ${formatarValorAnalises(calculo.total.lucroLiquido)}
+                    </span>
+                </div>
 
-            <div class="analises-tabela-container">
+                <div class="analises-tabela-container">
 
-                <table class="analises-tabela">
+                    <table class="analises-tabela">
 
-                    ${gerarCabecalhoAnalises()}
+                        ${gerarCabecalhoAnalises()}
 
-                    <tbody>
+                        <tbody>
+                            ${linhas}
+                            ${linhaTotal}
+                        </tbody>
 
-                        ${linhas}
-
-                        ${linhaTotal}
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-            <div class="analises-graficos">
-
-                <div class="analises-grafico-card">
-
-                    <h4>Receitas x Despesas por mês</h4>
-
-                    <canvas id="analisesReceitasDespesas${ano}"></canvas>
+                    </table>
 
                 </div>
 
-                <div class="analises-grafico-card">
+            </div>
 
-                    <h4>Evolução dos resultados</h4>
+            ${gerarComparativoTrimestralAnalises(meses, calculo)}
 
-                    <canvas id="analisesResultados${ano}"></canvas>
+            <div class="analises-secao">
 
+                <div class="analises-ano-titulo">
+                    <h3>Gráficos financeiros</h3>
+                    <span>Comportamento mensal e trimestral</span>
                 </div>
 
-                <div class="analises-grafico-card analises-grafico-composicao">
+                <div class="analises-graficos">
 
-                    <h4>Composição financeira do ano</h4>
+                    <div class="analises-grafico-card">
+                        <h4>Receitas x Despesas por mês</h4>
+                        <canvas id="analisesReceitasDespesas${ano}"></canvas>
+                    </div>
 
-                    <canvas id="analisesComposicao${ano}"></canvas>
+                    <div class="analises-grafico-card">
+                        <h4>Evolução dos resultados</h4>
+                        <canvas id="analisesResultados${ano}"></canvas>
+                    </div>
+
+                    <div class="analises-grafico-card analises-grafico-composicao">
+                        <h4>Composição financeira do ano</h4>
+                        <canvas id="analisesComposicao${ano}"></canvas>
+                    </div>
+
+                    <div class="analises-grafico-card">
+                        <h4>Classes de movimentação por trimestre</h4>
+                        <canvas id="analisesTrimestralClasses${ano}"></canvas>
+                    </div>
+
+                    <div class="analises-grafico-card">
+                        <h4>Evolução do lucro líquido trimestral</h4>
+                        <canvas id="analisesTrimestralResultado${ano}"></canvas>
+                    </div>
 
                 </div>
 
@@ -2667,6 +2680,530 @@ function gerarTabelaAnalises(ano, meses) {
     `;
 }
 
+
+function gerarIndicadoresAnuaisAnalises(calculo) {
+
+    const total = calculo.total;
+    const meses = calculo.meses;
+
+    const receitas = total.receitas || 0;
+    const lucro = total.lucroLiquido || 0;
+
+    const margemLiquida = receitas > 0
+        ? (lucro / receitas) * 100
+        : 0;
+
+    const mediaReceitas = receitas / 12;
+    const mediaDespesas = (total.despesas || 0) / 12;
+
+    const mesesComMovimentacao = meses
+        .map((mes, indice) => ({ ...mes, indice }))
+        .filter(mes =>
+            (mes.receitas || 0) +
+            (mes.despesas || 0) +
+            (mes.cartoes || 0) +
+            (mes.investimentos || 0) +
+            (mes.receitasNaoOperacionais || 0) +
+            (mes.gastosNaoOperacionais || 0) > 0
+        );
+
+    const mesMaiorLucro = mesesComMovimentacao.length
+        ? mesesComMovimentacao.reduce((melhor, atual) =>
+            atual.lucroLiquido > melhor.lucroLiquido ? atual : melhor
+        )
+        : { lucroLiquido: 0, indice: 0 };
+
+    const mesMenorLucro = mesesComMovimentacao.length
+        ? mesesComMovimentacao.reduce((pior, atual) =>
+            atual.lucroLiquido < pior.lucroLiquido ? atual : pior
+        )
+        : { lucroLiquido: 0, indice: 0 };
+
+    const indiceMaior = mesMaiorLucro.indice;
+    const indiceMenor = mesMenorLucro.indice;
+
+    function indicador(titulo, valor, detalhe, classe = "") {
+
+        return `
+            <div class="analises-indicador-card">
+
+                <span>${titulo}</span>
+
+                <strong class="${classe}">
+                    ${valor}
+                </strong>
+
+                <small>${detalhe}</small>
+
+            </div>
+        `;
+    }
+
+    return `
+        <div class="analises-indicadores">
+
+            <div class="analises-ano-titulo">
+                <h3>Indicadores anuais</h3>
+                <span>Visão geral do desempenho financeiro</span>
+            </div>
+
+            <div class="analises-indicadores-grid">
+
+                ${indicador(
+                    "Receitas totais",
+                    formatarValorAnalises(receitas),
+                    "Total recebido no ano",
+                    "analises-positivo"
+                )}
+
+                ${indicador(
+                    "Despesas totais",
+                    formatarValorAnalises(total.despesas),
+                    "Total de despesas no ano",
+                    "analises-negativo"
+                )}
+
+                ${indicador(
+                    "Investimentos",
+                    formatarValorAnalises(total.investimentos),
+                    "Total investido no ano"
+                )}
+
+                ${indicador(
+                    "Lucro líquido",
+                    formatarValorAnalises(lucro),
+                    "Resultado final do ano",
+                    lucro >= 0 ? "analises-positivo" : "analises-negativo"
+                )}
+
+                ${indicador(
+                    "Margem líquida",
+                    margemLiquida.toLocaleString("pt-BR", {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1
+                    }) + "%",
+                    "Lucro líquido sobre as receitas"
+                )}
+
+                ${indicador(
+                    "Média mensal de receitas",
+                    formatarValorAnalises(mediaReceitas),
+                    "Receita média por mês"
+                )}
+
+                ${indicador(
+                    "Média mensal de despesas",
+                    formatarValorAnalises(mediaDespesas),
+                    "Despesa média por mês"
+                )}
+
+                ${indicador(
+                    "Melhor mês",
+                    analisesMeses[indiceMaior],
+                    formatarValorAnalises(mesMaiorLucro.lucroLiquido),
+                    "analises-positivo"
+                )}
+
+                ${indicador(
+                    "Pior mês",
+                    analisesMeses[indiceMenor],
+                    formatarValorAnalises(mesMenorLucro.lucroLiquido),
+                    mesMenorLucro.lucroLiquido >= 0
+                        ? "analises-positivo"
+                        : "analises-negativo"
+                )}
+
+            </div>
+
+        </div>
+    `;
+}
+
+
+
+/* =========================================
+   COMPARAÇÃO TRIMESTRAL
+========================================= */
+
+
+function gerarComparativoTrimestralAnalises(meses, calculoAnual) {
+
+    const trimestres = [
+        { nome: "1º Trimestre", periodo: "Janeiro a Março", meses: meses.slice(0, 3) },
+        { nome: "2º Trimestre", periodo: "Abril a Junho", meses: meses.slice(3, 6) },
+        { nome: "3º Trimestre", periodo: "Julho a Setembro", meses: meses.slice(6, 9) },
+        { nome: "4º Trimestre", periodo: "Outubro a Dezembro", meses: meses.slice(9, 12) }
+    ];
+
+    const resultados = trimestres.map(trimestre => ({
+        ...trimestre,
+        calculo: calcularResultadosAnalises(trimestre.meses)
+    }));
+
+    const indicadores = [
+        { nome: "Receitas", campo: "receitas", tipo: "favoravel" },
+        { nome: "Despesas", campo: "despesas", tipo: "inverso" },
+        { nome: "Cartões", campo: "cartoes", tipo: "neutro" },
+        { nome: "Investimentos", campo: "investimentos", tipo: "neutro" },
+        { nome: "Receitas não operacionais", campo: "receitasNaoOperacionais", tipo: "favoravel" },
+        { nome: "Saídas não operacionais", campo: "gastosNaoOperacionais", tipo: "inverso" },
+        { nome: "Lucro líquido", campo: "lucroLiquido", tipo: "favoravel" }
+    ];
+
+    function percentual(valor) {
+
+        return valor.toLocaleString("pt-BR", {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        }) + "%";
+    }
+
+    function variacao(anterior, atual) {
+
+        const diferenca = atual - anterior;
+
+        return {
+            diferenca,
+            percentual: anterior > 0
+                ? (diferenca / anterior) * 100
+                : null
+        };
+    }
+
+    function classeVariacao(indicador, diferenca) {
+
+        if (diferenca === 0 || indicador.tipo === "neutro") {
+            return "analises-neutro";
+        }
+
+        const positivo = indicador.tipo === "favoravel"
+            ? diferenca > 0
+            : diferenca < 0;
+
+        return positivo
+            ? "analises-positivo"
+            : "analises-negativo";
+    }
+
+    function textoVariacao(indicador, anterior, atual) {
+
+        const resultado = variacao(anterior, atual);
+
+        const sinal = resultado.diferenca > 0 ? "+" : "";
+
+        const percentualTexto = resultado.percentual !== null
+            ? `(${sinal}${percentual(resultado.percentual)})`
+            : "(sem base percentual)";
+
+        const verbo = resultado.diferenca > 0
+            ? "aumentou"
+            : resultado.diferenca < 0
+                ? "diminuiu"
+                : "permaneceu estável";
+
+        return `
+            <li>
+                <strong>${indicador.nome}:</strong>
+                <span class="${classeVariacao(indicador, resultado.diferenca)}">
+                    ${verbo} ${resultado.diferenca !== 0 ? percentualTexto : ""}
+                </span>.
+
+                ${resultado.diferenca !== 0
+                    ? `Passou de ${formatarValorAnalises(anterior)}
+                       para ${formatarValorAnalises(atual)}.`
+                    : `Permaneceu em ${formatarValorAnalises(atual)}.`
+                }
+            </li>
+        `;
+    }
+
+    function gerarCards() {
+
+        return resultados.map(trimestre => {
+
+            const total = trimestre.calculo.total;
+
+            return `
+                <div class="analises-trimestre-card">
+
+                    <div class="analises-trimestre-card-cabecalho">
+                        <h4>${trimestre.nome}</h4>
+                        <span>${trimestre.periodo}</span>
+                    </div>
+
+                    <div class="analises-trimestre-indicador">
+                        <span>Receitas</span>
+                        <strong class="analises-positivo">
+                            ${formatarValorAnalises(total.receitas)}
+                        </strong>
+                    </div>
+
+                    <div class="analises-trimestre-indicador">
+                        <span>Despesas</span>
+                        <strong class="analises-negativo">
+                            ${formatarValorAnalises(total.despesas)}
+                        </strong>
+                    </div>
+
+                    <div class="analises-trimestre-indicador">
+                        <span>Cartões</span>
+                        <strong>${formatarValorAnalises(total.cartoes)}</strong>
+                    </div>
+
+                    <div class="analises-trimestre-indicador">
+                        <span>Investimentos</span>
+                        <strong>${formatarValorAnalises(total.investimentos)}</strong>
+                    </div>
+
+                    <div class="analises-trimestre-indicador">
+                        <span>Receitas não operacionais</span>
+                        <strong>${formatarValorAnalises(total.receitasNaoOperacionais)}</strong>
+                    </div>
+
+                    <div class="analises-trimestre-indicador">
+                        <span>Saídas não operacionais</span>
+                        <strong>${formatarValorAnalises(total.gastosNaoOperacionais)}</strong>
+                    </div>
+
+                    <div class="analises-trimestre-resultado">
+                        <span>Lucro líquido</span>
+                        <strong class="${
+                            total.lucroLiquido >= 0
+                                ? "analises-positivo"
+                                : "analises-negativo"
+                        }">
+                            ${formatarValorAnalises(total.lucroLiquido)}
+                        </strong>
+                    </div>
+
+                </div>
+            `;
+        }).join("");
+    }
+
+    function gerarTabelaComparativa() {
+
+        return `
+            <div class="analises-tabela-container">
+
+                <table class="analises-tabela analises-tabela-trimestral">
+
+                    <thead>
+                        <tr>
+                            <th>Indicador</th>
+                            <th>1º tri.</th>
+                            <th>2º tri.</th>
+                            <th>Variação</th>
+                            <th>3º tri.</th>
+                            <th>Variação</th>
+                            <th>4º tri.</th>
+                            <th>Variação</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        ${indicadores.map(indicador => {
+
+                            const valores = resultados.map(
+                                trimestre =>
+                                    trimestre.calculo.total[indicador.campo] || 0
+                            );
+
+                            const v12 = variacao(valores[0], valores[1]);
+                            const v23 = variacao(valores[1], valores[2]);
+                            const v34 = variacao(valores[2], valores[3]);
+
+                            function celulaVariacao(v) {
+
+                                const sinal = v.diferenca > 0 ? "+" : "";
+
+                                return `
+                                    <td class="${classeVariacao(indicador, v.diferenca)}">
+                                        <strong>
+                                            ${v.percentual === null
+                                                ? "—"
+                                                : sinal + percentual(v.percentual)
+                                            }
+                                        </strong>
+                                        <div class="analises-variacao-valor">
+                                            ${sinal}${formatarValorAnalises(v.diferenca)}
+                                        </div>
+                                    </td>
+                                `;
+                            }
+
+                            return `
+                                <tr>
+                                    <td>${indicador.nome}</td>
+                                    <td>${formatarValorAnalises(valores[0])}</td>
+                                    <td>${formatarValorAnalises(valores[1])}</td>
+                                    ${celulaVariacao(v12)}
+                                    <td>${formatarValorAnalises(valores[2])}</td>
+                                    ${celulaVariacao(v23)}
+                                    <td>${formatarValorAnalises(valores[3])}</td>
+                                    ${celulaVariacao(v34)}
+                                </tr>
+                            `;
+
+                        }).join("")}
+                    </tbody>
+
+                </table>
+
+            </div>
+        `;
+    }
+
+    function gerarParticipacaoAnual() {
+
+        const classes = indicadores.filter(
+            indicador => indicador.campo !== "lucroLiquido"
+        );
+
+        return `
+            <div class="analises-tabela-container">
+
+                <table class="analises-tabela analises-tabela-participacao">
+
+                    <thead>
+                        <tr>
+                            <th>Classe</th>
+                            <th>1º trimestre</th>
+                            <th>2º trimestre</th>
+                            <th>3º trimestre</th>
+                            <th>4º trimestre</th>
+                            <th>Total anual</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        ${classes.map(indicador => {
+
+                            const anual = calculoAnual.total[indicador.campo] || 0;
+
+                            return `
+                                <tr>
+                                    <td>${indicador.nome}</td>
+
+                                    ${resultados.map(trimestre => {
+
+                                        const valor = trimestre.calculo.total[indicador.campo] || 0;
+
+                                        const parte = anual > 0
+                                            ? (valor / anual) * 100
+                                            : null;
+
+                                        return `
+                                            <td>
+                                                ${parte === null ? "—" : percentual(parte)}
+                                            </td>
+                                        `;
+
+                                    }).join("")}
+
+                                    <td>
+                                        <strong>100%</strong>
+                                        <div class="analises-variacao-valor">
+                                            ${formatarValorAnalises(anual)}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+
+                        }).join("")}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+        `;
+    }
+
+    function gerarDiagnosticos() {
+
+        return [1, 2, 3].map(indice => {
+
+            const anterior = resultados[indice - 1];
+            const atual = resultados[indice];
+
+            const observacoes = indicadores.map(indicador => {
+
+                const valorAnterior =
+                    anterior.calculo.total[indicador.campo] || 0;
+
+                const valorAtual =
+                    atual.calculo.total[indicador.campo] || 0;
+
+                return textoVariacao(
+                    indicador,
+                    valorAnterior,
+                    valorAtual
+                );
+
+            }).join("");
+
+            return `
+                <div class="analises-comparacao-bloco">
+
+                    <h4>
+                        ${anterior.nome} para ${atual.nome}
+                    </h4>
+
+                    <ul>${observacoes}</ul>
+
+                </div>
+            `;
+
+        }).join("");
+    }
+
+    return `
+        <div class="analises-trimestral">
+
+            <div class="analises-trimestres-cards">
+                ${gerarCards()}
+            </div>
+
+            <div class="analises-secao">
+
+                <div class="analises-ano-titulo">
+                    <h3>Comparação trimestral</h3>
+                    <span>Valores e variações entre os períodos</span>
+                </div>
+
+                ${gerarTabelaComparativa()}
+
+            </div>
+
+            <div class="analises-secao">
+
+                <div class="analises-ano-titulo">
+                    <h3>Participação no resultado anual</h3>
+                    <span>Percentual de cada trimestre no total do ano</span>
+                </div>
+
+                ${gerarParticipacaoAnual()}
+
+            </div>
+
+            <div class="analises-secao">
+
+                <div class="analises-ano-titulo">
+                    <h3>Diagnóstico financeiro</h3>
+                    <span>Interpretação automática da evolução trimestral</span>
+                </div>
+
+                <div class="analises-diagnosticos">
+                    ${gerarDiagnosticos()}
+                </div>
+
+            </div>
+
+        </div>
+    `;
+}
 
 // ==========================================
 // GRÁFICOS
@@ -2957,6 +3494,133 @@ function criarGraficosAnalises(ano, meses) {
             }
         }
     );
+    
+    // GRÁFICO 4: CLASSES POR TRIMESTRE
+
+    const trimestres = [
+        meses.slice(0, 3),
+        meses.slice(3, 6),
+        meses.slice(6, 9),
+        meses.slice(9, 12)
+    ];
+
+    const nomesTrimestres = [
+        "1º trimestre",
+        "2º trimestre",
+        "3º trimestre",
+        "4º trimestre"
+    ];
+
+    const totaisTrimestrais = trimestres.map(
+        trimestre => calcularResultadosAnalises(trimestre).total
+    );
+
+    const canvasTrimestral = document.getElementById(
+        `analisesTrimestralClasses${ano}`
+    );
+
+    analisesGraficos[`trimestralClasses${ano}`] = new Chart(
+        canvasTrimestral,
+        {
+            type: "bar",
+
+            data: {
+                labels: nomesTrimestres,
+
+                datasets: [
+                    {
+                        label: "Receitas",
+                        data: totaisTrimestrais.map(t => t.receitas),
+                        backgroundColor: "#35c98a"
+                    },
+                    {
+                        label: "Despesas",
+                        data: totaisTrimestrais.map(t => t.despesas),
+                        backgroundColor: "#f16c6c"
+                    },
+                    {
+                        label: "Cartões",
+                        data: totaisTrimestrais.map(t => t.cartoes),
+                        backgroundColor: "#e6b85c"
+                    },
+                    {
+                        label: "Investimentos",
+                        data: totaisTrimestrais.map(t => t.investimentos),
+                        backgroundColor: "#bd91ed"
+                    },
+                    {
+                        label: "Receitas não operacionais",
+                        data: totaisTrimestrais.map(t => t.receitasNaoOperacionais),
+                        backgroundColor: "#55b8e8"
+                    },
+                    {
+                        label: "Saídas não operacionais",
+                        data: totaisTrimestrais.map(t => t.gastosNaoOperacionais),
+                        backgroundColor: "#e6a16a"
+                    }
+                ]
+            },
+
+            options: {
+                ...opcoes,
+                scales: {
+                    ...opcoes.scales,
+                    x: {
+                        ...opcoes.scales?.x,
+                        stacked: false
+                    },
+                    y: {
+                        ...opcoes.scales?.y,
+                        beginAtZero: true
+                    }
+                }
+            }
+        }
+    );
+
+
+    // GRÁFICO 5: LUCRO LÍQUIDO TRIMESTRAL
+
+    const canvasResultadoTrimestral = document.getElementById(
+        `analisesTrimestralResultado${ano}`
+    );
+
+    analisesGraficos[`trimestralResultado${ano}`] = new Chart(
+        canvasResultadoTrimestral,
+        {
+            type: "line",
+
+            data: {
+                labels: nomesTrimestres,
+
+                datasets: [
+                    {
+                        label: "Lucro líquido",
+                        data: totaisTrimestrais.map(t => t.lucroLiquido),
+                        borderColor: "#35c98a",
+                        backgroundColor: "rgba(53, 201, 138, 0.15)",
+                        pointBackgroundColor: "#35c98a",
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+
+            options: {
+                ...opcoes,
+                scales: {
+                    ...opcoes.scales,
+                    y: {
+                        ...opcoes.scales?.y,
+                        beginAtZero: false
+                    }
+                }
+            }
+        }
+    );
+
 }
 
 
