@@ -4670,3 +4670,557 @@ body.modo-pdf * {
         width: 100%;
     }
 }
+
+
+
+/* =========================================
+   ANÁLISE TRIMESTRAL
+========================================= */
+
+.analises-trimestral {
+    margin-top: 30px;
+    padding: 20px;
+    background: var(--fundo-card, #1b1b1b);
+    border: 1px solid var(--borda, #333);
+    border-radius: 12px;
+}
+
+.analises-trimestral-titulo {
+    margin-bottom: 20px;
+}
+
+.analises-trimestral-titulo h3 {
+    margin: 0 0 7px;
+    color: var(--texto, #fff);
+    font-size: 19px;
+}
+
+.analises-trimestral-titulo p {
+    margin: 0;
+    color: var(--texto-secundario, #999);
+    font-size: 13px;
+}
+
+.analises-trimestres-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.analises-trimestre-card {
+    min-width: 0;
+    padding: 16px;
+    background: var(--fundo-secundario, #202020);
+    border: 1px solid var(--borda, #333);
+    border-radius: 9px;
+}
+
+.analises-trimestre-card-cabecalho {
+    margin-bottom: 15px;
+}
+
+.analises-trimestre-card h4 {
+    margin: 0 0 4px;
+    color: var(--texto, #fff);
+    font-size: 15px;
+}
+
+.analises-trimestre-card-cabecalho span {
+    color: var(--texto-secundario, #999);
+    font-size: 11px;
+}
+
+.analises-trimestre-indicador,
+.analises-trimestre-resultado {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 13px;
+}
+
+.analises-trimestre-indicador span,
+.analises-trimestre-resultado span {
+    color: var(--texto-secundario, #999);
+    font-size: 11px;
+}
+
+.analises-trimestre-indicador strong,
+.analises-trimestre-resultado strong {
+    color: var(--texto, #eee);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+.analises-trimestre-resultado {
+    padding-top: 12px;
+    margin-bottom: 0;
+    border-top: 1px solid var(--borda, #333);
+}
+
+.analises-trimestre-resultado strong {
+    font-size: 17px;
+}
+
+.analises-subtitulo {
+    margin: 25px 0 14px;
+    color: var(--texto, #eee);
+    font-size: 15px;
+}
+
+.analises-tabela-trimestral {
+    min-width: 1050px;
+}
+
+.analises-tabela-trimestral thead th {
+    text-align: center;
+}
+
+.analises-tabela-trimestral td {
+    text-align: right;
+}
+
+.analises-variacao-valor {
+    margin-top: 4px;
+    color: var(--texto-secundario, #999);
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.analises-diagnosticos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.analises-comparacao-bloco {
+    padding: 16px;
+    background: var(--fundo-secundario, #202020);
+    border: 1px solid var(--borda, #333);
+    border-radius: 9px;
+}
+
+.analises-comparacao-bloco h4 {
+    margin: 0 0 13px;
+    color: var(--texto, #eee);
+    font-size: 13px;
+}
+
+.analises-comparacao-bloco ul {
+    margin: 0;
+    padding-left: 17px;
+}
+
+.analises-comparacao-bloco li {
+    margin-bottom: 12px;
+    color: var(--texto-secundario, #aaa);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.analises-comparacao-bloco li:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1000px) {
+
+    .analises-trimestres-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .analises-diagnosticos {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 550px) {
+
+    .analises-trimestral {
+        padding: 12px;
+    }
+
+    .analises-trimestres-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .analises-trimestre-card {
+        padding: 14px;
+    }
+}
+
+
+/* =========================================
+   ANÁLISE TRIMESTRAL
+========================================= */
+
+.analises-trimestral {
+    margin-top: 30px;
+    padding: 20px;
+    background: var(--fundo-card, #1b1b1b);
+    border: 1px solid var(--borda, #333);
+    border-radius: 12px;
+}
+
+.analises-trimestral-titulo {
+    margin-bottom: 20px;
+}
+
+.analises-trimestral-titulo h3 {
+    margin: 0 0 7px;
+    color: var(--texto, #fff);
+    font-size: 19px;
+}
+
+.analises-trimestral-titulo p {
+    margin: 0;
+    color: var(--texto-secundario, #999);
+    font-size: 13px;
+}
+
+.analises-trimestres-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.analises-trimestre-card {
+    min-width: 0;
+    padding: 16px;
+    background: var(--fundo-secundario, #202020);
+    border: 1px solid var(--borda, #333);
+    border-radius: 9px;
+}
+
+.analises-trimestre-card-cabecalho {
+    margin-bottom: 15px;
+}
+
+.analises-trimestre-card h4 {
+    margin: 0 0 4px;
+    color: var(--texto, #fff);
+    font-size: 15px;
+}
+
+.analises-trimestre-card-cabecalho span {
+    color: var(--texto-secundario, #999);
+    font-size: 11px;
+}
+
+.analises-trimestre-indicador,
+.analises-trimestre-resultado {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 13px;
+}
+
+.analises-trimestre-indicador span,
+.analises-trimestre-resultado span {
+    color: var(--texto-secundario, #999);
+    font-size: 11px;
+}
+
+.analises-trimestre-indicador strong,
+.analises-trimestre-resultado strong {
+    color: var(--texto, #eee);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+.analises-trimestre-resultado {
+    padding-top: 12px;
+    margin-bottom: 0;
+    border-top: 1px solid var(--borda, #333);
+}
+
+.analises-trimestre-resultado strong {
+    font-size: 17px;
+}
+
+.analises-subtitulo {
+    margin: 25px 0 14px;
+    color: var(--texto, #eee);
+    font-size: 15px;
+}
+
+.analises-tabela-trimestral {
+    min-width: 1050px;
+}
+
+.analises-tabela-trimestral thead th {
+    text-align: center;
+}
+
+.analises-tabela-trimestral td {
+    text-align: right;
+}
+
+.analises-variacao-valor {
+    margin-top: 4px;
+    color: var(--texto-secundario, #999);
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.analises-diagnosticos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.analises-comparacao-bloco {
+    padding: 16px;
+    background: var(--fundo-secundario, #202020);
+    border: 1px solid var(--borda, #333);
+    border-radius: 9px;
+}
+
+.analises-comparacao-bloco h4 {
+    margin: 0 0 13px;
+    color: var(--texto, #eee);
+    font-size: 13px;
+}
+
+.analises-comparacao-bloco ul {
+    margin: 0;
+    padding-left: 17px;
+}
+
+.analises-comparacao-bloco li {
+    margin-bottom: 12px;
+    color: var(--texto-secundario, #aaa);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.analises-comparacao-bloco li:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1000px) {
+
+    .analises-trimestres-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .analises-diagnosticos {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 550px) {
+
+    .analises-trimestral {
+        padding: 12px;
+    }
+
+    .analises-trimestres-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .analises-trimestre-card {
+        padding: 14px;
+    }
+}
+
+
+
+/* =========================================
+   NOVA ESTRUTURA DAS ANÁLISES
+========================================= */
+
+.analises-secao {
+    margin-top: 30px;
+}
+
+.analises-indicadores {
+    margin-bottom: 30px;
+}
+
+.analises-indicadores-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.analises-indicador-card {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    min-width: 0;
+    padding: 17px;
+    background: var(--fundo-secundario, #202020);
+    border: 1px solid var(--borda, #333);
+    border-radius: 9px;
+}
+
+.analises-indicador-card span {
+    color: var(--texto-secundario, #999);
+    font-size: 12px;
+}
+
+.analises-indicador-card strong {
+    color: var(--texto, #eee);
+    font-size: 19px;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.analises-indicador-card small {
+    color: var(--texto-secundario, #888);
+    font-size: 11px;
+}
+
+.analises-trimestral {
+    margin-top: 30px;
+}
+
+.analises-trimestres-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.analises-trimestre-card {
+    min-width: 0;
+    padding: 16px;
+    background: var(--fundo-secundario, #202020);
+    border: 1px solid var(--borda, #333);
+    border-radius: 9px;
+}
+
+.analises-trimestre-card-cabecalho {
+    margin-bottom: 16px;
+}
+
+.analises-trimestre-card h4 {
+    margin: 0 0 5px;
+    color: var(--texto, #fff);
+    font-size: 15px;
+}
+
+.analises-trimestre-card-cabecalho span {
+    color: var(--texto-secundario, #999);
+    font-size: 11px;
+}
+
+.analises-trimestre-indicador {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 13px;
+}
+
+.analises-trimestre-indicador span,
+.analises-trimestre-resultado span {
+    color: var(--texto-secundario, #999);
+    font-size: 11px;
+}
+
+.analises-trimestre-indicador strong {
+    color: var(--texto, #eee);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.analises-trimestre-resultado {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding-top: 13px;
+    border-top: 1px solid var(--borda, #333);
+}
+
+.analises-trimestre-resultado strong {
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+}
+
+.analises-tabela-trimestral,
+.analises-tabela-participacao {
+    min-width: 1000px;
+}
+
+.analises-tabela-trimestral th,
+.analises-tabela-participacao th {
+    text-align: center;
+}
+
+.analises-tabela-trimestral td,
+.analises-tabela-participacao td {
+    text-align: right;
+}
+
+.analises-variacao-valor {
+    margin-top: 4px;
+    color: var(--texto-secundario, #999);
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.analises-diagnosticos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.analises-comparacao-bloco {
+    min-width: 0;
+    padding: 16px;
+    background: var(--fundo-secundario, #202020);
+    border: 1px solid var(--borda, #333);
+    border-radius: 9px;
+}
+
+.analises-comparacao-bloco h4 {
+    margin: 0 0 14px;
+    color: var(--texto, #eee);
+    font-size: 13px;
+}
+
+.analises-comparacao-bloco ul {
+    margin: 0;
+    padding-left: 17px;
+}
+
+.analises-comparacao-bloco li {
+    margin-bottom: 12px;
+    color: var(--texto-secundario, #aaa);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.analises-comparacao-bloco li:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 1000px) {
+
+    .analises-indicadores-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .analises-trimestres-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .analises-diagnosticos {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 550px) {
+
+    .analises-indicadores-grid,
+    .analises-trimestres-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .analises-indicador-card,
+    .analises-trimestre-card {
+        padding: 14px;
+    }
+}
